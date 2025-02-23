@@ -1,13 +1,20 @@
 import { createClient } from "@/utils/supabase/server";
-import { InfoIcon, Home, Users, Settings, FileText } from "lucide-react";
+import { InfoIcon, Home, Users, Settings, FileText, ClipboardList } from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import LogoutButton from '@/components/logout-button';
+import { Button } from "@/components/ui/button";
 
 interface NavItem {
   label: string | React.ReactNode;
   icon?: React.ReactNode;
   href: string;
+}
+
+interface Response {
+  id: string;
+  question: { text: string };
+  option: { display: string; he_value: string };
 }
 
 export default async function DashboardPage() {
@@ -18,20 +25,29 @@ export default async function DashboardPage() {
     return redirect("/sign-in");
   }
 
+  // Simpler query
+  const { data: responses } = await supabase
+    .from('responses')
+    .select(`
+      id,
+      question:questions(text),
+      option:options(display, he_value)
+    `)
+    .eq('user_id', user.id)
+    .order('created_at') as { data: Response[] | null };
+
   const navItems: NavItem[] = [
-    { label: "Dashboard", icon: <Home size={20} />, href: "/protected" },
-    { label: "Team", icon: <Users size={20} />, href: "/protected/team" },
-    { label: "Documents", icon: <FileText size={20} />, href: "/protected/documents" },
-    { label: "Settings", icon: <Settings size={20} />, href: "/protected/settings" },
+    { label: "לוח בקרה", icon: <Home size={20} />, href: "/protected" },
+    { label: "שאלון", icon: <FileText size={20} />, href: "/protected/questionnaire" },
     { label: <LogoutButton />, href: "/protected/settings" },
   ];
 
   return (
-    <div className="flex-1 w-full flex">
+    <div className="flex-1 w-full flex" dir="rtl">
       {/* Sidebar */}
-      <aside className="w-64 bg-muted h-screen p-4 border-r rounded-lg">
+      <aside className="w-64 bg-muted h-screen p-4 border-l rounded-lg">
         <div className="mb-8">
-          <h2 className="font-bold text-xl">Dashboard</h2>
+          <h2 className="font-bold text-xl">לוח בקרה</h2>
         </div>
         <nav className="flex flex-col h-full">
           <div className="space-y-2">
@@ -56,10 +72,40 @@ export default async function DashboardPage() {
           <div className="bg-accent text-sm p-4 rounded-lg text-foreground flex gap-3 items-center">
             <InfoIcon size="20" strokeWidth={2} />
             <div>
-              <h3 className="font-semibold mb-1">Welcome to your dashboard!</h3>
-              <p>This is your personal space to manage your account and activities.</p>
+              <h3 className="font-semibold mb-1">ברוכים הבאים ללוח הבקרה!</h3>
+              <p>כאן תוכלו לנהל את החשבון והפעילויות שלכם.</p>
             </div>
           </div>
+
+          {/* Business Diagnosis Section */}
+          {responses && responses.length > 0 && (
+            <section className="bg-card rounded-lg p-6 border">
+              <div className="flex items-center justify-between gap-3 mb-6">
+                <div className="flex items-center gap-3">
+                  <ClipboardList className="h-6 w-6" />
+                  <h2 className="font-bold text-2xl">אבחון עסקי</h2>
+                </div>
+                <Button
+                  asChild
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <Link href="/protected/diagnosis">קבל אבחון AI</Link>
+                </Button>
+              </div>
+              <div className="space-y-4">
+                {responses.map((response) => (
+                  <div key={response.id} className="border-b pb-4">
+                    <h3 className="font-medium text-lg mb-2">
+                      {response.question?.text}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {response.option?.he_value || response.option?.display}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* User Profile Section */}
           <section className="bg-card rounded-lg p-6 border">

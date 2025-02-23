@@ -32,7 +32,7 @@ export default function LogoutButton() {
       aria-label="Logout"
     >
       <LogOut size={20} />
-      <span>Logout</span>
+      <span>התנתק</span>
     </button>
   );
 } 
