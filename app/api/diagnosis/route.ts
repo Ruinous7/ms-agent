@@ -21,6 +21,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if profile exists
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "not found" error
+      throw profileError;
+    }
+
+    // Create profile if it doesn't exist
+    if (!profile) {
+      const { error: createError } = await supabase
+        .from('profiles')
+        .insert([
+          { 
+            id: user.id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ]);
+
+      if (createError) throw createError;
+    }
+
     // Fetch user's responses with questions and answers
     const { data: responses } = await supabase
       .from('responses')
@@ -59,8 +85,39 @@ export async function POST(request: Request) {
       max_tokens: 500,
     });
 
+    const aiDiagnosis = completion.choices[0].message.content;
+    console.log('Generated AI Diagnosis:', aiDiagnosis); // Debug log
+
+    // Update profile with diagnosis
+    const { data: updateData, error: updateError } = await supabase
+      .from('profiles')
+      .update({ 
+        business_diagnosis: aiDiagnosis,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id)
+      .select() // Add this to get the updated record
+      .single();
+
+    if (updateError) {
+      console.error('Error saving diagnosis:', updateError);
+      throw updateError;
+    }
+
+    console.log('Updated Profile:', updateData); // Debug log
+
+    // Verify the update
+    const { data: verifyProfile } = await supabase
+      .from('profiles')
+      .select('business_diagnosis')
+      .eq('id', user.id)
+      .single();
+
+    console.log('Verified Profile:', verifyProfile); // Debug log
+
     return NextResponse.json({
-      diagnosis: completion.choices[0].message.content
+      diagnosis: aiDiagnosis,
+      profile: verifyProfile // Include profile in response for verification
     });
 
   } catch (error) {

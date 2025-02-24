@@ -6,17 +6,10 @@ import LogoutButton from '@/components/logout-button';
 import { Button } from "@/components/ui/button";
 import '@/styles/protected/page.scss';
 
-
 interface NavItem {
   label: string | React.ReactNode;
   icon?: React.ReactNode;
   href: string;
-}
-
-interface Response {
-  id: string;
-  question: { text: string };
-  option: { display: string; he_value: string };
 }
 
 export default async function DashboardPage() {
@@ -27,16 +20,19 @@ export default async function DashboardPage() {
     return redirect("/sign-in");
   }
 
-  // Simpler query
-  const { data: responses } = await supabase
-    .from('responses')
-    .select(`
-      id,
-      question:questions(text),
-      option:options(display, he_value)
-    `)
-    .eq('user_id', user.id)
-    .order('created_at') as { data: Response[] | null };
+  // Fetch the user's business diagnosis from the profiles table
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('business_diagnosis')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError) {
+    console.error('Error fetching profile:', profileError);
+    return <div>Error loading profile</div>;
+  }
+
+  const businessDiagnosis = profile?.business_diagnosis || "No business diagnosis found.";
 
   const navItems: NavItem[] = [
     { label: "לוח בקרה", icon: <Home size={20} />, href: "/protected" },
@@ -80,9 +76,8 @@ export default async function DashboardPage() {
           </div>
 
           {/* Business Diagnosis Section */}
-          {responses && responses.length > 0 && (
-            <section className="bg-card rounded-lg p-6 border">
-              <div className="flex items-center justify-between gap-3 mb-6">
+          <section className="bg-card rounded-lg p-6 border mb-6">
+            <div className="flex items-center justify-between gap-3 mb-6">
                 <div className="flex items-center gap-3">
                   <ClipboardList className="h-6 w-6" />
                   <h2 className="font-bold text-2xl">אבחון עסקי</h2>
@@ -94,20 +89,9 @@ export default async function DashboardPage() {
                   <Link href="/protected/diagnosis">קבל אבחון AI</Link>
                 </Button>
               </div>
-              <div className="space-y-4">
-                {responses.map((response) => (
-                  <div key={response.id} className="border-b pb-4">
-                    <h3 className="font-medium text-lg mb-2">
-                      {response.question?.text}
-                    </h3>
-                    <p className="text-muted-foreground">
-                      {response.option?.he_value || response.option?.display}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+            <p className="text-sm text-muted-foreground">{businessDiagnosis}</p>
+          </section>
+
 
           {/* User Profile Section */}
           <section className="bg-card rounded-lg p-6 border">
