@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import LogoutButton from '@/components/logout-button';
 import { Button } from "@/components/ui/button";
+import '@/styles/protected/page.scss';
+
 
 interface NavItem {
   label: string | React.ReactNode;
@@ -45,7 +47,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex-1 w-full flex" dir="rtl">
       {/* Sidebar */}
-      <aside className="w-64 bg-muted h-screen p-4 border-l rounded-lg">
+      <aside className="sidebar bg-muted z-10">
         <div className="mb-8">
           <h2 className="font-bold text-xl">לוח בקרה</h2>
         </div>
@@ -66,10 +68,10 @@ export default async function DashboardPage() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8">
+      <main className="main p-8">
         <div className="max-w-5xl mx-auto space-y-8">
           {/* Welcome Banner */}
-          <div className="bg-accent text-sm p-4 rounded-lg text-foreground flex gap-3 items-center">
+          <div className="welcome-banner bg-accent text-sm p-4 rounded-lg text-foreground flex gap-3 items-center">
             <InfoIcon size="20" strokeWidth={2} />
             <div>
               <h3 className="font-semibold mb-1">ברוכים הבאים ללוח הבקרה!</h3>
