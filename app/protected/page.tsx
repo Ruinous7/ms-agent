@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import { InfoIcon, Home, Users, Settings, FileText, ClipboardList, Target , MessageSquareLock} from "lucide-react";
+import { InfoIcon, Home, Users, Settings, FileText, ClipboardList, Target , MessageSquareLock, MessageSquare} from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import LogoutButton from '@/components/logout-button';
@@ -68,6 +68,13 @@ export default async function DashboardPage() {
       description: 'קבל ניתוח מעמיק של המתחרים בשוק',
       icon: <Users size={20} />,
       href: '/protected/actions/competitor-analysis'
+    },
+    {
+      id: 'post-generator',
+      label: 'יוצר פוסטים',
+      description: 'צור פוסטים מותאמים אישית לרשתות חברתיות',
+      icon: <MessageSquare size={20} />,
+      href: '/protected/actions/post-generator'
     }
   ];
 
