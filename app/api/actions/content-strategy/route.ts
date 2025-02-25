@@ -29,31 +29,31 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate marketing plan using OpenAI
+    // Generate content strategy using OpenAI
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
-          content: "אתה יועץ שיווק מקצועי. עליך ליצור תוכנית שיווק מפורטת בהתבסס על האבחון העסקי."
+          content: "אתה מומחה לשיווק דיגיטלי ותוכן. עליך ליצור אסטרטגיית תוכן ותוכנית פרסום לרשתות חברתיות בהתבסס על האבחון העסקי."
         },
         {
           role: "user",
-          content: `אנא צור תוכנית שיווק מפורטת עבור העסק הזה. הנה האבחון העסקי:\n\n${profile.business_diagnosis}\n\nהתוכנית צריכה לכלול:\n1. קהל יעד מדויק\n2. ערוצי שיווק מומלצים\n3. אסטרטגיות תוכן\n4. תקציב מומלץ\n5. לוח זמנים לביצוע`
+          content: `אנא צור אסטרטגיית תוכן ותוכנית פרסום לרשתות חברתיות. הנה האבחון העסקי:\n\n${profile.business_diagnosis}\n\nהתוכנית צריכה לכלול:\n1. נושאי תוכן מרכזיים\n2. סוגי תוכן מומלצים\n3. תדירות פרסום מומלצת\n4. רשתות חברתיות מומלצות\n5. דוגמאות לפוסטים`
         }
       ],
       max_tokens: 1000,
     });
 
-    const marketingPlan = completion.choices[0].message.content;
+    const contentStrategy = completion.choices[0].message.content;
 
-    return NextResponse.json({ marketingPlan });
+    return NextResponse.json({ contentStrategy });
 
   } catch (error) {
-    console.error('Marketing plan generation error:', error);
+    console.error('Content strategy generation error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate marketing plan' },
+      { error: 'Failed to generate content strategy' },
       { status: 500 }
     );
   }
-}
+} 

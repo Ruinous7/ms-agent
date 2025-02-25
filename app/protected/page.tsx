@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import { InfoIcon, Home, Users, Settings, FileText, ClipboardList } from "lucide-react";
+import { InfoIcon, Home, Users, Settings, FileText, ClipboardList, Target , MessageSquareLock} from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import LogoutButton from '@/components/logout-button';
@@ -38,6 +38,37 @@ export default async function DashboardPage() {
     { label: "לוח בקרה", icon: <Home size={20} />, href: "/protected" },
     { label: "שאלון", icon: <FileText size={20} />, href: "/protected/questionnaire" },
     { label: <LogoutButton />, href: "/protected/settings" },
+  ];
+
+  const quickActions = [
+    {
+      id: 'marketing-plan',
+      label: 'תוכנית שיווק',
+      description: 'צור תוכנית שיווק מותאמת אישית לעסק שלך',
+      icon: <MessageSquareLock size={20} />,
+      href: '/protected/actions/marketing-plan'
+    },
+    {
+      id: 'content-strategy',
+      label: 'אסטרטגיית תוכן',
+      description: 'קבל רעיונות לתוכן ותוכנית פרסום לרשתות חברתיות',
+      icon: <FileText size={20} />,
+      href: '/protected/actions/content-strategy'
+    },
+    {
+      id: 'business-goals',
+      label: 'יעדים עסקיים',
+      description: 'הגדר יעדים חכמים ומדידים לעסק שלך',
+      icon: <Target size={20} />,
+      href: '/protected/actions/business-goals'
+    },
+    {
+      id: 'competitor-analysis',
+      label: 'ניתוח מתחרים',
+      description: 'קבל ניתוח מעמיק של המתחרים בשוק',
+      icon: <Users size={20} />,
+      href: '/protected/actions/competitor-analysis'
+    }
   ];
 
   return (
@@ -117,15 +148,24 @@ export default async function DashboardPage() {
 
           {/* Quick Actions Section */}
           <section>
-            <h2 className="font-bold text-2xl mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {['Update Profile', 'View Documents', 'Team Settings'].map((action) => (
-                <button
-                  key={action}
-                  className="p-4 rounded-lg border hover:bg-accent transition-colors text-left"
+            <h2 className="font-bold text-2xl mb-4">פעולות מהירות</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {quickActions.map((action) => (
+                <Link
+                  key={action.id}
+                  href={action.href}
+                  className="group p-6 rounded-lg border hover:border-primary transition-colors"
                 >
-                  {action}
-                </button>
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      {action.icon}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{action.label}</h3>
+                      <p className="text-sm text-muted-foreground">{action.description}</p>
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
           </section>

@@ -29,31 +29,31 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate marketing plan using OpenAI
+    // Generate SMART goals using OpenAI
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
-          content: "אתה יועץ שיווק מקצועי. עליך ליצור תוכנית שיווק מפורטת בהתבסס על האבחון העסקי."
+          content: "אתה יועץ עסקי המתמחה בהגדרת יעדים SMART (ספציפיים, מדידים, ברי השגה, רלוונטיים, ותחומים בזמן). עליך ליצור יעדים עסקיים בהתבסס על האבחון העסקי."
         },
         {
           role: "user",
-          content: `אנא צור תוכנית שיווק מפורטת עבור העסק הזה. הנה האבחון העסקי:\n\n${profile.business_diagnosis}\n\nהתוכנית צריכה לכלול:\n1. קהל יעד מדויק\n2. ערוצי שיווק מומלצים\n3. אסטרטגיות תוכן\n4. תקציב מומלץ\n5. לוח זמנים לביצוע`
+          content: `אנא צור רשימת יעדים SMART לעסק בהתבסס על האבחון הבא:\n\n${profile.business_diagnosis}\n\nעבור כל יעד, כלול:\n1. תיאור היעד\n2. כיצד נמדוד אותו\n3. למה הוא בר השגה\n4. למה הוא רלוונטי לעסק\n5. לוח זמנים להשגת היעד`
         }
       ],
       max_tokens: 1000,
     });
 
-    const marketingPlan = completion.choices[0].message.content;
+    const businessGoals = completion.choices[0].message.content;
 
-    return NextResponse.json({ marketingPlan });
+    return NextResponse.json({ businessGoals });
 
   } catch (error) {
-    console.error('Marketing plan generation error:', error);
+    console.error('Business goals generation error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate marketing plan' },
+      { error: 'Failed to generate business goals' },
       { status: 500 }
     );
   }
-}
+} 
