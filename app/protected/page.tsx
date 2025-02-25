@@ -63,13 +63,6 @@ export default async function DashboardPage() {
       href: '/protected/actions/business-goals'
     },
     {
-      id: 'competitor-analysis',
-      label: 'ניתוח מתחרים',
-      description: 'קבל ניתוח מעמיק של המתחרים בשוק',
-      icon: <Users size={20} />,
-      href: '/protected/actions/competitor-analysis'
-    },
-    {
       id: 'post-generator',
       label: 'יוצר פוסטים',
       description: 'צור פוסטים מותאמים אישית לרשתות חברתיות',

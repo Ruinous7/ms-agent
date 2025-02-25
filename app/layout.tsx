@@ -51,7 +51,7 @@ export default function RootLayout({
                     </div>
                   </div>
                 </nav>
-                <div className="flex flex-col">
+                <div id="main-inner-wrapper" className="flex flex-col">
                   {children}
                 </div>
             </main>

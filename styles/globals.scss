@@ -59,8 +59,18 @@
   }
 }
 
-.main-nav-bar {
-  
+main {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+
+  #main-inner-wrapper {
+    width: 100%;
+    justify-self: center;
+    align-self: center;
+  }
 }
 
 @layer base {
