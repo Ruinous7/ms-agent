@@ -60,3 +60,13 @@ export const updateSession = async (request: NextRequest) => {
     });
   }
 };
+
+// Make sure the middleware properly handles redirects
+export async function middleware(request: NextRequest) {
+  // ... existing code ...
+
+  // Ensure the redirect URL is using the correct base URL
+  // You might need to modify this section depending on your implementation
+  
+  // ... existing code ...
+}

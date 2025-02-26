@@ -12,6 +12,8 @@ const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "http://localhost:3000";
 
+console.log(process.env.defaultUrl);
+
 export const metadata = {
   metadataBase: new URL(defaultUrl),
   title: "ms-agent.ai in Next.js",

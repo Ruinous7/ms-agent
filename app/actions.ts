@@ -4,12 +4,15 @@ import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getURL } from "@/utils/url";
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
   const supabase = await createClient();
-  const origin = (await headers()).get("origin");
+  
+  // Use your actual deployed URL here
+  const redirectUrl = "https://your-app.vercel.app/auth/callback";
 
   if (!email || !password) {
     return encodedRedirect(
@@ -23,7 +26,7 @@ export const signUpAction = async (formData: FormData) => {
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback`,
+      emailRedirectTo: redirectUrl,
     },
   });
 
@@ -59,7 +62,10 @@ export const signInAction = async (formData: FormData) => {
 export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const supabase = await createClient();
-  const origin = (await headers()).get("origin");
+  
+  // Use your actual deployed URL here
+  const redirectUrl = "https://your-app.vercel.app/auth/callback?redirect_to=/protected/reset-password";
+  
   const callbackUrl = formData.get("callbackUrl")?.toString();
 
   if (!email) {
@@ -67,7 +73,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?redirect_to=/protected/reset-password`,
+    redirectTo: redirectUrl,
   });
 
   if (error) {
