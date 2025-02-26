@@ -11,8 +11,8 @@ export const signUpAction = async (formData: FormData) => {
   const password = formData.get("password")?.toString();
   const supabase = await createClient();
   
-  // Use your actual deployed URL here
-  const redirectUrl = "https://your-app.vercel.app/auth/callback";
+  // Use the getURL utility function instead of hardcoding
+  const redirectUrl = `${getURL()}auth/callback`;
 
   if (!email || !password) {
     return encodedRedirect(
@@ -63,8 +63,8 @@ export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const supabase = await createClient();
   
-  // Use your actual deployed URL here
-  const redirectUrl = "https://your-app.vercel.app/auth/callback?redirect_to=/protected/reset-password";
+  // Use the getURL utility function instead of hardcoding
+  const redirectUrl = `${getURL()}auth/callback?redirect_to=/protected/reset-password`;
   
   const callbackUrl = formData.get("callbackUrl")?.toString();
 
