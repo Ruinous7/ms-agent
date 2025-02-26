@@ -4,15 +4,12 @@ import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getURL } from "@/utils/url";
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
   const supabase = await createClient();
-  
-  // Use the getURL utility function instead of hardcoding
-  const redirectUrl = `${getURL()}auth/callback`;
+  const origin = (await headers()).get("origin");
 
   if (!email || !password) {
     return encodedRedirect(
@@ -26,7 +23,7 @@ export const signUpAction = async (formData: FormData) => {
     email,
     password,
     options: {
-      emailRedirectTo: redirectUrl,
+      emailRedirectTo: `${origin}/auth/callback`,
     },
   });
 
@@ -62,10 +59,8 @@ export const signInAction = async (formData: FormData) => {
 export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const supabase = await createClient();
-  
-  // Use the getURL utility function instead of hardcoding
-  const redirectUrl = `${getURL()}auth/callback?redirect_to=/protected/reset-password`;
-  
+  const origin = (await headers()).get("origin");
+    
   const callbackUrl = formData.get("callbackUrl")?.toString();
 
   if (!email) {
@@ -73,7 +68,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: redirectUrl,
+    redirectTo: `${origin}/auth/callback?redirect_to=/protected/reset-password`,
   });
 
   if (error) {

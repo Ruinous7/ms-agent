@@ -10,3 +10,13 @@
     padding-inline-start: 16rem;
     padding-block-start: 1rem;
 }
+
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+
+    .main {
+        padding-inline-start: 0;
+    }
+}
