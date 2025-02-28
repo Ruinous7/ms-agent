@@ -28,6 +28,9 @@ export default async function DashboardPage() {
     .single();
 
   if (profileError) {
+    if (profileError.code === 'PGRST116') {
+      return redirect('/protected/questionnaire');
+    }
     console.error('Error fetching profile:', profileError);
     return <div>Error loading profile</div>;
   }
