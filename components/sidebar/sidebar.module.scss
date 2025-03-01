@@ -104,6 +104,19 @@
   }
 }
 
+.logoutNavItem {
+  display: none;
+  
+  @media (max-width: 768px) {
+    display: flex;
+    color: hsl(var(--destructive));
+    
+    &:hover {
+      color: hsl(var(--destructive));
+    }
+  }
+}
+
 .navIcon {
   display: flex;
   align-items: center;

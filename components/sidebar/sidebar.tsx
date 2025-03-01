@@ -41,6 +41,15 @@ export default function Sidebar() {
               </Link>
             );
           })}
+          
+          {/* Logout button - only visible in mobile */}
+          <Link 
+            href="/api/auth/signout" 
+            className={`${styles.navItem} ${styles.logoutNavItem}`}
+          >
+            <span className={styles.navIcon}><FiLogOut /></span>
+            <span className={styles.navLabel}>התנתק</span>
+          </Link>
         </nav>
         
         <div className={styles.sidebarFooter}>
