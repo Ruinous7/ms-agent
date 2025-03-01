@@ -1,12 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import { FiHome, FiUser, FiFileText, FiSettings, FiLogOut } from 'react-icons/fi';
+import { createClient } from '@/utils/supabase/client';
 import styles from './sidebar.module.scss';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
   
   const navItems = [
     {
@@ -20,6 +24,24 @@ export default function Sidebar() {
       label: 'פרופיל'
     },
   ];
+  
+  const handleLogout = async () => {
+    try {
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Error logging out:', error.message);
+        return;
+      }
+      
+      // Redirect to login page after successful logout
+      router.push('/sign-in');
+      router.refresh();
+    } catch (error) {
+      console.error('Unexpected error during logout:', error);
+    }
+  };
   
   return (
     <aside className={styles.sidebar}>
@@ -43,20 +65,20 @@ export default function Sidebar() {
           })}
           
           {/* Logout button - only visible in mobile */}
-          <Link 
-            href="/api/auth/signout" 
+          <button 
+            onClick={handleLogout}
             className={`${styles.navItem} ${styles.logoutNavItem}`}
           >
             <span className={styles.navIcon}><FiLogOut /></span>
             <span className={styles.navLabel}>התנתק</span>
-          </Link>
+          </button>
         </nav>
         
         <div className={styles.sidebarFooter}>
-          <Link href="/api/auth/signout" className={styles.logoutButton}>
+          <button onClick={handleLogout} className={styles.logoutButton}>
             <FiLogOut />
             <span>התנתק</span>
-          </Link>
+          </button>
         </div>
       </div>
     </aside>
