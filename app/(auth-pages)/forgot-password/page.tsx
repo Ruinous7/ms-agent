@@ -11,24 +11,36 @@ export default async function ForgotPassword(props: {
   const searchParams = await props.searchParams;
   return (
     <>
-      <form className="flex-1 flex flex-col w-full gap-2 text-foreground [&>input]:mb-6 min-w-64 max-w-64 mx-auto">
-        <div>
-          <h1 className="text-2xl font-medium">שחזור סיסמא</h1>
-          <p className="text-sm text-secondary-foreground">
-            כבר יש לך חשבון?{" "}
-            <Link className="text-primary underline" href="/sign-in">
-              התחבר
-            </Link>
-          </p>
+      <h1 className="text-2xl font-semibold text-center mb-6">שחזור סיסמא</h1>
+      <p className="text-sm text-secondary-foreground text-center mb-8">
+        כבר יש לך חשבון?{" "}
+        <Link className="text-primary underline" href="/sign-in">
+          התחבר
+        </Link>
+      </p>
+
+      <form className="flex flex-col w-full gap-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-sm font-medium">אימייל</Label>
+            <Input 
+              name="email" 
+              id="email"
+              placeholder="you@example.com" 
+              required 
+              className="w-full"
+            />
+          </div>
         </div>
-        <div className="flex flex-col gap-2 [&>input]:mb-3 mt-8">
-          <Label htmlFor="email">אימייל</Label>
-          <Input name="email" placeholder="you@example.com" required />
-          <SubmitButton formAction={forgotPasswordAction}>
-            שחזור סיסמא
-          </SubmitButton>
-          <FormMessage message={searchParams} />
-        </div>
+
+        <SubmitButton 
+          formAction={forgotPasswordAction}
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          שחזור סיסמא
+        </SubmitButton>
+        
+        <FormMessage message={searchParams} />
       </form>
     </>
   );

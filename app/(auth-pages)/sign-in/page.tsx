@@ -8,37 +8,61 @@ import Link from "next/link";
 export default async function Login(props: { searchParams: Promise<Message> }) {
   const searchParams = await props.searchParams;
   return (
-    <form className="flex-1 flex flex-col min-w-64">
-        <h1 className="text-2xl font-medium">התחברות</h1>
-      <p className="text-sm text-foreground">
+    <>
+      <h1 className="text-2xl font-semibold text-center mb-6">התחברות</h1>
+      <p className="text-sm text-secondary-foreground text-center mb-8">
         אין לך חשבון?{" "}
-        <Link className="text-foreground font-medium underline" href="/sign-up">
+        <Link className="text-primary underline" href="/sign-up">
           הרשמה
         </Link>
       </p>
-      <div className="flex flex-col gap-2 [&>input]:mb-3 mt-8">
-        <Label htmlFor="email">אימייל</Label>
-        <Input name="email" placeholder="you@example.com" required />
-        <div className="flex justify-between items-center">
-          <Label htmlFor="password">סיסמא</Label>
-          <Link
-            className="text-xs text-foreground underline"
-            href="/forgot-password"
-          >
-            שכחתי את הסיסמא?
-          </Link>
+
+      <form className="flex flex-col w-full gap-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="email" className="text-sm font-medium">אימייל</Label>
+            </div>
+            <Input 
+              name="email" 
+              id="email"
+              placeholder="you@example.com" 
+              required 
+              className="w-full"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="password" className="text-sm font-medium">סיסמא</Label>
+              <Link
+                className="text-xs text-primary underline"
+                href="/forgot-password"
+              >
+                שכחתי את הסיסמא?
+              </Link>
+            </div>
+            <Input
+              type="password"
+              name="password"
+              id="password"
+              placeholder="סיסמא שלך"
+              required
+              className="w-full"
+            />
+          </div>
         </div>
-        <Input
-          type="password"
-          name="password"
-          placeholder="סיסמא שלך"
-          required
-        />
-        <SubmitButton pendingText="התחבר..." formAction={signInAction}>
+
+        <SubmitButton 
+          pendingText="מתחבר..." 
+          formAction={signInAction}
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+        >
           התחבר
         </SubmitButton>
+        
         <FormMessage message={searchParams} />
-      </div>
-    </form>
+      </form>
+    </>
   );
 }
