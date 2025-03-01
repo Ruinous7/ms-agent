@@ -21,7 +21,12 @@
 }
 
 .main {
-  flex: 1;
+  min-height: 100vh;
   padding: 1.5rem;
-  overflow-y: auto;
+  padding-right: calc(250px + 1.5rem); /* Account for sidebar width */
+  
+  @media (max-width: 768px) {
+    padding-right: 1.5rem;
+    padding-bottom: 5rem; /* Space for mobile navigation */
+  }
 } 

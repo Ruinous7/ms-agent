@@ -1,23 +1,24 @@
 .sidebar {
   background-color: hsl(var(--card));
-  border-left: 1px solid hsl(var(--border));
-  display: flex;
-  flex-direction: column;
   direction: rtl;
-  
-  [dir="rtl"] & {
-    border-left: none;
-    border-right: 1px solid hsl(var(--border));
-  }
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 250px;
+  border-left: 1px solid hsl(var(--border));
+  z-index: 40;
+  overflow-y: auto;
   
   @media (max-width: 768px) {
-    position: fixed;
+    height: auto;
+    top: auto;
     bottom: 0;
     left: 0;
-    right: 0;
+    width: 100%;
     border-left: none;
-    border-right: none;
     border-top: 1px solid hsl(var(--border));
+    overflow-y: visible;
     z-index: 50;
   }
 }
