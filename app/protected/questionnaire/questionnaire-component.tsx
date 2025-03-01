@@ -28,6 +28,8 @@ export default function QuestionnaireComponent({ initialQuestions, userId }: Pro
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [responses, setResponses] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
   const currentQuestion = initialQuestions.find(q => q.step === currentStep);
@@ -62,12 +64,32 @@ export default function QuestionnaireComponent({ initialQuestions, userId }: Pro
     }
   };
 
-  const handleCompletion = async () => {
+  const handleSubmitQuestionnaire = async () => {
+    setIsSubmitting(true);
+    setError(null);
+    
     try {
-      // You might want to add final submission logic here
-      router.push('/protected');
-    } catch (error) {
-      console.error('Error completing questionnaire:', error);
+      const response = await fetch('/api/diagnosis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answers: Object.values(responses) }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit questionnaire');
+      }
+      
+      const data = await response.json();
+      
+      // Redirect to a results page or dashboard
+      router.push('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -75,7 +97,7 @@ export default function QuestionnaireComponent({ initialQuestions, userId }: Pro
     return (
       <div className="text-center space-y-4" dir="rtl">
         <h2 className="text-2xl font-bold">השאלון הושלם!</h2>
-        <Button onClick={handleCompletion}>
+        <Button onClick={handleSubmitQuestionnaire}>
           צפה באבחון העסקי
         </Button>
       </div>
@@ -122,10 +144,26 @@ export default function QuestionnaireComponent({ initialQuestions, userId }: Pro
         >
           הקודם
         </Button>
-        <Button onClick={() => setCurrentStep(currentStep + 1)}>
-          הבא
+        <Button
+          onClick={() => {
+            if (currentStep === totalSteps) {
+              handleSubmitQuestionnaire();
+            } else {
+              setCurrentStep(currentStep + 1);
+            }
+          }}
+          disabled={!responses[currentQuestion.id] || isSubmitting}
+          className="disabled:opacity-50"
+        >
+          {isSubmitting ? 'Processing...' : currentStep === totalSteps ? 'Submit' : 'הבא'}
         </Button>
       </div>
+
+      {error && (
+        <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md">
+          {error}
+        </div>
+      )}
     </div>
   );
 } 

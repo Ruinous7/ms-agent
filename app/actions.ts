@@ -133,3 +133,58 @@ export const signOutAction = async () => {
   await supabase.auth.signOut();
   return redirect("/sign-in");
 };
+
+export async function createUserProfile(businessDiagnosis: string) {
+  const supabase = await createClient();
+  
+  // Get the current user
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  
+  if (userError || !user) {
+    throw new Error('Authentication required');
+  }
+  
+  // Check if profile already exists
+  const { data: existingProfile, error: checkError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .single();
+    
+  if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
+    throw new Error(`Error checking profile: ${checkError.message}`);
+  }
+  
+  // If profile exists, update it
+  if (existingProfile) {
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ 
+        business_diagnosis: businessDiagnosis,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
+      
+    if (updateError) {
+      throw new Error(`Error updating profile: ${updateError.message}`);
+    }
+    
+    return { success: true, message: 'Profile updated successfully' };
+  }
+  
+  // If profile doesn't exist, create it
+  const { error: insertError } = await supabase
+    .from('profiles')
+    .insert({
+      id: user.id,
+      business_diagnosis: businessDiagnosis,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    
+  if (insertError) {
+    throw new Error(`Error creating profile: ${insertError.message}`);
+  }
+  
+  return { success: true, message: 'Profile created successfully' };
+}

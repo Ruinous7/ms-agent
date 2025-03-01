@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { createUserProfile } from '@/app/actions';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -114,6 +115,11 @@ export async function POST(request: Request) {
       .single();
 
     console.log('Verified Profile:', verifyProfile); // Debug log
+
+    // Create or update user profile with the diagnosis
+    if (aiDiagnosis) {
+      await createUserProfile(aiDiagnosis);
+    }
 
     return NextResponse.json({
       diagnosis: aiDiagnosis,
