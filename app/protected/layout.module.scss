@@ -1,0 +1,27 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  
+  /* Default LTR layout - sidebar on left */
+  flex-direction: row;
+  
+  /* RTL layout - sidebar on right */
+  [dir="rtl"] & {
+    flex-direction: row-reverse;
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    padding-bottom: 4rem; /* Space for mobile navigation */
+    
+    [dir="rtl"] & {
+      flex-direction: column;
+    }
+  }
+}
+
+.main {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+} 

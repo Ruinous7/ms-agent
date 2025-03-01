@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import { InfoIcon, Home, Users, Settings, FileText, ClipboardList, Target , MessageSquareLock, MessageSquare} from "lucide-react";
+import { InfoIcon, Home, Users, Settings, FileText, ClipboardList, Target , MessageSquareLock, MessageSquare, LogOut} from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import LogoutButton from '@/components/logout-button';
@@ -37,10 +37,10 @@ export default async function DashboardPage() {
 
   const businessDiagnosis = profile?.business_diagnosis || "No business diagnosis found.";
 
-  const navItems: NavItem[] = [
+  const navItems: NavItem[] =  [
     { label: "לוח בקרה", icon: <Home size={20} />, href: "/protected" },
     { label: "שאלון", icon: <FileText size={20} />, href: "/protected/questionnaire" },
-    { label: <LogoutButton />, href: "/protected/settings" },
+    { label: <LogoutButton />, icon: <LogOut size={20} />, href: "/" },
   ];
 
   const quickActions = [
@@ -76,30 +76,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex-1 w-full flex" dir="rtl">
-      {/* Sidebar */}
-      <aside className="sidebar bg-muted z-10">
-        <div className="mb-8">
-          <h2 className="font-bold text-xl">לוח בקרה</h2>
-        </div>
-        <nav className="flex flex-col h-full">
-          <div className="space-y-2">
-            {navItems.map((item) => (
-              <Link
-                key={typeof item.label === 'string' ? item.label : item.href}
-                href={item.href}
-                className="flex items-center gap-3 p-2 rounded-md hover:bg-accent transition-colors"
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </Link>
-            ))}
-          </div>
-        </nav>
-      </aside>
-
       {/* Main Content */}
       <main className="main p-8">
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div  id="main-protected-inner-wrapper" className="max-w-5xl mx-auto space-y-8">
           {/* Welcome Banner */}
           <div className="welcome-banner bg-accent text-sm p-4 rounded-lg text-foreground flex gap-3 items-center">
             <InfoIcon size="20" strokeWidth={2} />
@@ -129,7 +108,15 @@ export default async function DashboardPage() {
 
           {/* User Profile Section */}
           <section className="bg-card rounded-lg p-6 border">
-            <h2 className="font-bold text-2xl mb-4">Profile Overview</h2>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h2 className="font-bold text-2xl">Profile Overview</h2>
+              <Button
+                asChild
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Link href="/protected/profile">View Full Profile</Link>
+              </Button>
+            </div>
             <div className="grid gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center">
@@ -140,17 +127,11 @@ export default async function DashboardPage() {
                   <p className="text-sm text-muted-foreground">User ID: {user.id}</p>
                 </div>
               </div>
-              <div className="mt-4">
-                <h4 className="font-semibold mb-2">Account Details</h4>
-                <pre className="text-xs font-mono p-3 rounded bg-muted overflow-auto max-h-40">
-                  {JSON.stringify(user, null, 2)}
-                </pre>
-              </div>
             </div>
           </section>
 
           {/* Quick Actions Section */}
-          <section>
+          <section id="quick-actions">
             <h2 className="font-bold text-2xl mb-4">פעולות מהירות</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {quickActions.map((action) => (

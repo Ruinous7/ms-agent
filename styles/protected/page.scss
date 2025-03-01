@@ -12,11 +12,17 @@
 }
 
 @media (max-width: 768px) {
-    .sidebar {
-        display: none;
-    }
-
     .main {
         padding-inline-start: 0;
+
+        #main-protected-inner-wrapper{
+            width: 100%;
+            padding-inline-start: 0.75rem;
+            padding-inline-end: 0.75rem;
+        }
+
+        #quick-actions{
+            padding-block-end: 5.5rem;
+        }
     }
 }

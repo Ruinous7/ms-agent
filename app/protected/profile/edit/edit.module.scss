@@ -1,0 +1,247 @@
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  position: relative;
+}
+
+.header {
+  margin-bottom: 2rem;
+  
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+    color: hsl(var(--foreground));
+  }
+}
+
+.subtitle {
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  color: hsl(var(--muted-foreground));
+  text-decoration: none;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  
+  [dir="rtl"] & {
+    flex-direction: row-reverse;
+  }
+  
+  svg {
+    margin-right: 0.5rem;
+    
+    [dir="rtl"] & {
+      margin-right: 0;
+      margin-left: 0.5rem;
+    }
+  }
+  
+  &:hover {
+    color: hsl(var(--foreground));
+  }
+}
+
+.formContainer {
+  background-color: hsl(var(--card));
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  filter: blur(2px);
+  pointer-events: none;
+  
+  :global(.dark) & {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.formSection {
+  border-bottom: 1px solid hsl(var(--border));
+  padding-bottom: 1.5rem;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+.sectionIcon {
+  margin-right: 0.75rem;
+  color: hsl(var(--primary));
+  
+  [dir="rtl"] & {
+    margin-right: 0;
+    margin-left: 0.75rem;
+  }
+}
+
+.formGroup {
+  margin-bottom: 1.5rem;
+  flex: 1;
+  
+  label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: hsl(var(--foreground));
+    margin-bottom: 0.5rem;
+  }
+  
+  input, textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: 6px;
+    font-size: 1rem;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    
+    &:focus {
+      outline: none;
+      border-color: hsl(var(--ring));
+      box-shadow: 0 0 0 2px hsla(var(--ring), 0.2);
+    }
+    
+    &::placeholder {
+      color: hsl(var(--muted-foreground));
+    }
+  }
+  
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+}
+
+.formRow {
+  display: flex;
+  gap: 1.5rem;
+  
+  @media (max-width: 640px) {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+.inputIcon {
+  display: inline-block;
+  margin-right: 0.5rem;
+  color: hsl(var(--primary));
+  
+  [dir="rtl"] & {
+    margin-right: 0;
+    margin-left: 0.5rem;
+  }
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+  
+  [dir="rtl"] & {
+    flex-direction: row-reverse;
+  }
+  
+  @media (max-width: 640px) {
+    flex-direction: column;
+    
+    [dir="rtl"] & {
+      flex-direction: column;
+    }
+  }
+}
+
+.saveButton, .cancelButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.saveButton {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.cancelButton {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border: 1px solid hsl(var(--border));
+  
+  &:hover:not(:disabled) {
+    background-color: hsl(var(--muted));
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.comingSoonOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.comingSoonContent {
+  background-color: hsla(var(--background), 0.9);
+  padding: 2rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: hsl(var(--primary));
+    margin: 0 0 1rem 0;
+  }
+  
+  p {
+    font-size: 1.1rem;
+    color: hsl(var(--foreground));
+    margin: 0;
+  }
+} 

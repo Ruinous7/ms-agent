@@ -31,7 +31,6 @@ export default function LogoutButton() {
       className="flex items-center gap-2 p-2 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
       aria-label="Logout"
     >
-      <LogOut size={20} />
       <span>התנתק</span>
     </button>
   );
