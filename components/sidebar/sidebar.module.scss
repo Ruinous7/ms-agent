@@ -2,13 +2,13 @@
   background-color: hsl(var(--card));
   direction: rtl;
   position: fixed;
-  top: 0;
   right: 0;
-  height: 100vh;
+  height: 100%;
   width: 250px;
   border-left: 1px solid hsl(var(--border));
   z-index: 40;
   overflow-y: auto;
+  padding-bottom: 4em;
   
   @media (max-width: 768px) {
     height: auto;
