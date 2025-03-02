@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
-import { FiHome, FiUser, FiFileText, FiSettings, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiUser, FiFileText, FiSettings, FiLogOut, FiClipboard, FiBarChart2 } from 'react-icons/fi';
 import { createClient } from '@/utils/supabase/client';
 import styles from './sidebar.module.scss';
 
@@ -17,6 +17,16 @@ export default function Sidebar() {
       href: '/protected',
       icon: <FiHome />,
       label: 'ראשי'
+    },
+    {
+      href: '/protected/questionnaire',
+      icon: <FiClipboard />,
+      label: 'שאלון אבחון'
+    },
+    {
+      href: '/protected/diagnosis-summary',
+      icon: <FiBarChart2 />,
+      label: 'סיכום אבחון'
     },
     {
       href: '/protected/profile',

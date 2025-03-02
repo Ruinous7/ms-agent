@@ -44,11 +44,12 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, string | string[]>>({});
   const [freeTextResponses, setFreeTextResponses] = useState<Record<string, string>>({});
+  const [otherOptionTexts, setOtherOptionTexts] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
-  // Group questions by stage
+  // Group questions by stage without filtering out the business name question
   const questionsByStage = initialQuestions.reduce((acc, question) => {
     const stageId = question.stage_id || 1;
     if (!acc[stageId]) {
@@ -59,7 +60,11 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
   }, {} as Record<number, Question[]>);
 
   // Get current stage questions
-  const currentStage = initialStages[currentStageIndex] || { id: 1, step_number: 1, title: 'שאלון' };
+  const currentStage = initialStages[currentStageIndex] || { 
+    id: 1, 
+    step_number: currentStageIndex + 1, 
+    title: 'שאלון' 
+  };
   const currentStageQuestions = questionsByStage[currentStage.id] || [];
   const totalStages = initialStages.length || 1;
 
@@ -67,10 +72,15 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const currentQuestion = currentStageQuestions[currentQuestionIndex];
   
-  const handleSingleSelectAnswer = async (questionId: string, optionId: string) => {
+  const handleSingleSelectAnswer = async (questionId: string, optionId: string, option: Option) => {
     try {
       // Update local state
       setResponses(prev => ({ ...prev, [questionId]: optionId }));
+
+      // If this is an "Other" option that allows free text, don't auto-advance
+      if (option.allows_free_text) {
+        return;
+      }
 
       // Save to Supabase with proper upsert handling
       await supabase
@@ -94,7 +104,7 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
     }
   };
 
-  const handleMultiSelectAnswer = async (questionId: string, optionId: string) => {
+  const handleMultiSelectAnswer = async (questionId: string, optionId: string, option: Option) => {
     try {
       // Get current selections for this question
       const currentSelections = (responses[questionId] as string[]) || [];
@@ -123,6 +133,13 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
 
   const handleFreeTextAnswer = (questionId: string, text: string) => {
     setFreeTextResponses(prev => ({ ...prev, [questionId]: text }));
+  };
+
+  const handleOtherOptionText = (questionId: string, optionId: string, text: string) => {
+    setOtherOptionTexts(prev => ({
+      ...prev,
+      [`${questionId}_${optionId}`]: text
+    }));
   };
 
   const saveMultiSelectResponses = async (questionId: string, selections: string[]) => {
@@ -168,6 +185,32 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
     }
   };
 
+  const saveOtherOptionText = async (questionId: string, optionId: string) => {
+    const key = `${questionId}_${optionId}`;
+    const text = otherOptionTexts[key];
+    
+    if (text) {
+      try {
+        await supabase
+          .from('responses')
+          .upsert(
+            {
+              user_id: userId,
+              question_id: questionId,
+              option_id: optionId,
+              free_text_response: text
+            },
+            {
+              onConflict: 'user_id,question_id',
+              ignoreDuplicates: false,
+            }
+          );
+      } catch (error) {
+        console.error('Error saving other option text:', error);
+      }
+    }
+  };
+
   const handleNextQuestion = async () => {
     // Save multi-select or free text responses if needed
     if (currentQuestion) {
@@ -175,11 +218,27 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
         const selections = (responses[currentQuestion.id] as string[]) || [];
         if (selections.length > 0) {
           await saveMultiSelectResponses(currentQuestion.id, selections);
+          
+          // Save any "Other" option texts
+          for (const optionId of selections) {
+            const option = currentQuestion.options.find(o => o.id === optionId);
+            if (option?.allows_free_text) {
+              await saveOtherOptionText(currentQuestion.id, optionId);
+            }
+          }
         }
       } else if (currentQuestion.question_type === 'free_text') {
         const text = freeTextResponses[currentQuestion.id] || '';
         if (text) {
           await saveFreeTextResponse(currentQuestion.id, text);
+        }
+      } else if (currentQuestion.question_type === 'single_select') {
+        const optionId = responses[currentQuestion.id] as string;
+        if (optionId) {
+          const option = currentQuestion.options.find(o => o.id === optionId);
+          if (option?.allows_free_text) {
+            await saveOtherOptionText(currentQuestion.id, optionId);
+          }
         }
       }
     }
@@ -218,23 +277,8 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
     setError(null);
     
     try {
-      const response = await fetch('/api/diagnosis', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ answers: Object.values(responses) }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit questionnaire');
-      }
-      
-      const data = await response.json();
-      
-      // Redirect to a results page or dashboard
-      router.push('/');
+      // Redirect to the diagnosis summary page
+      router.push('/protected/diagnosis-summary');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
@@ -244,27 +288,49 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
 
   if (!currentQuestion) {
     return (
-      <div className="text-center space-y-4" dir="rtl">
-        <h2 className="text-2xl font-bold">השאלון הושלם!</h2>
-        <Button onClick={handleSubmitQuestionnaire} disabled={isSubmitting}>
-          {isSubmitting ? 'מעבד...' : 'צפה באבחון העסקי'}
+      <div className="text-center space-y-4 p-8 bg-card rounded-lg border" dir="rtl">
+        <h2 className="text-2xl font-bold">השאלון הושלם בהצלחה!</h2>
+        <p className="text-muted-foreground">
+          תודה שהשלמת את שאלון האבחון העסקי. כעת נוכל לספק לך תובנות מותאמות אישית לעסק שלך.
+        </p>
+        <Button onClick={handleSubmitQuestionnaire} disabled={isSubmitting} size="lg" className="mt-4">
+          {isSubmitting ? 'מעבד...' : 'צפה בסיכום התשובות שלך'}
         </Button>
       </div>
     );
   }
 
-  // Calculate overall progress
+  // Calculate overall progress correctly
   const totalQuestions = Object.values(questionsByStage).reduce((sum, questions) => sum + questions.length, 0);
-  const completedQuestions = currentStageIndex * (questionsByStage[currentStage.id]?.length || 0) + currentQuestionIndex;
-  const progressPercentage = (completedQuestions / totalQuestions) * 100;
+  
+  // Calculate completed questions by counting all questions in previous stages plus current stage questions
+  let completedQuestions = 0;
+  
+  // Add all questions from completed stages
+  for (let i = 0; i < currentStageIndex; i++) {
+    const stageId = initialStages[i]?.id;
+    if (stageId && questionsByStage[stageId]) {
+      completedQuestions += questionsByStage[stageId].length;
+    }
+  }
+  
+  // Add questions completed in current stage
+  completedQuestions += currentQuestionIndex;
+  
+  const progressPercentage = totalQuestions > 0 ? (completedQuestions / totalQuestions) * 100 : 0;
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex justify-between items-center mb-4">
-        <div className="text-sm text-muted-foreground">
-          שלב {currentStage.step_number} מתוך {totalStages}: {currentStage.title}
+      <div className="space-y-2 mb-4">
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-muted-foreground">
+            שלב {currentStage.step_number} מתוך {totalStages}: {currentStage.title || ''}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            שאלה {currentQuestionIndex + 1} מתוך {currentStageQuestions.length}
+          </div>
         </div>
-        <div className="h-2 flex-1 mx-4 bg-muted rounded-full overflow-hidden">
+        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
           <div 
             className="h-full bg-primary transition-all duration-300"
             style={{ width: `${progressPercentage}%` }}
@@ -295,18 +361,41 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
 
         {currentQuestion.question_type === 'single_select' && (
           <div className="space-y-3">
-            {currentQuestion.options.map((option) => (
-              <button
-                key={option.id}
-                onClick={() => handleSingleSelectAnswer(currentQuestion.id, option.id)}
-                className={`w-full p-4 text-right rounded-lg border transition-colors
-                  ${responses[currentQuestion.id] === option.id 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'hover:bg-accent'}`}
-              >
-                {option.he_value || option.display}
-              </button>
-            ))}
+            {currentQuestion.options.map((option) => {
+              const isSelected = responses[currentQuestion.id] === option.id;
+              
+              return (
+                <div key={option.id} className="space-y-2">
+                  <button
+                    onClick={() => handleSingleSelectAnswer(currentQuestion.id, option.id, option)}
+                    className={`w-full p-4 text-right rounded-lg border transition-colors
+                      ${isSelected 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'hover:bg-accent'}`}
+                  >
+                    {option.he_value || option.display}
+                  </button>
+                  
+                  {isSelected && option.allows_free_text && (
+                    <div className="mr-4 mt-2">
+                      <Input
+                        value={otherOptionTexts[`${currentQuestion.id}_${option.id}`] || ''}
+                        onChange={(e) => handleOtherOptionText(currentQuestion.id, option.id, e.target.value)}
+                        placeholder="פרט..."
+                        className="w-full"
+                      />
+                      <Button 
+                        onClick={handleNextQuestion}
+                        disabled={!otherOptionTexts[`${currentQuestion.id}_${option.id}`]}
+                        className="mt-2"
+                      >
+                        המשך
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -320,16 +409,28 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
                 (responses[currentQuestion.id] as string[]).includes(option.id);
               
               return (
-                <button
-                  key={option.id}
-                  onClick={() => handleMultiSelectAnswer(currentQuestion.id, option.id)}
-                  className={`w-full p-4 text-right rounded-lg border transition-colors
-                    ${isSelected 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'hover:bg-accent'}`}
-                >
-                  {option.he_value || option.display}
-                </button>
+                <div key={option.id} className="space-y-2">
+                  <button
+                    onClick={() => handleMultiSelectAnswer(currentQuestion.id, option.id, option)}
+                    className={`w-full p-4 text-right rounded-lg border transition-colors
+                      ${isSelected 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'hover:bg-accent'}`}
+                  >
+                    {option.he_value || option.display}
+                  </button>
+                  
+                  {isSelected && option.allows_free_text && (
+                    <div className="mr-4 mt-2">
+                      <Input
+                        value={otherOptionTexts[`${currentQuestion.id}_${option.id}`] || ''}
+                        onChange={(e) => handleOtherOptionText(currentQuestion.id, option.id, e.target.value)}
+                        placeholder="פרט..."
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+                </div>
               );
             })}
             <Button 
