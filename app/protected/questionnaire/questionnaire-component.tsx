@@ -626,35 +626,35 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
   // Render completion page with diagnosis
   const renderCompletionPage = () => {
     return (
-      <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-md max-w-3xl mx-auto">
+      <div className="flex flex-col items-center justify-center p-6 bg-card dark:bg-card rounded-lg shadow-md max-w-3xl mx-auto">
         <h2 className="text-2xl font-bold mb-6 text-center">תודה על השלמת השאלון!</h2>
         
         {diagnosisLoading ? (
           <div className="flex flex-col items-center justify-center p-8">
             <Spinner className="mb-4" />
             <p className="text-lg text-center">מייצר אבחון AI מותאם אישית עבורך...</p>
-            <p className="text-sm text-gray-500 mt-2">זה עשוי לקחת מספר שניות</p>
+            <p className="text-sm text-muted-foreground mt-2">זה עשוי לקחת מספר שניות</p>
           </div>
         ) : diagnosisError ? (
           <div className="flex flex-col items-center justify-center p-8">
-            <div className="text-red-500 mb-4">
+            <div className="text-destructive mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="12" y1="8" x2="12" y2="12"></line>
                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
               </svg>
             </div>
-            <p className="text-lg text-center text-red-600 mb-4">{diagnosisError}</p>
+            <p className="text-lg text-center text-destructive mb-4">{diagnosisError}</p>
             <button 
               onClick={generateAIDiagnosis}
-              className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
             >
               נסה שוב
             </button>
           </div>
         ) : diagnosis ? (
           <div className="w-full">
-            <div className="bg-blue-50 p-6 rounded-lg mb-8 border border-blue-100">
+            <div className="bg-accent/50 dark:bg-accent/20 p-6 rounded-lg mb-8 border">
               <h3 className="text-xl font-semibold mb-4">האבחון שלך:</h3>
               <div className="whitespace-pre-wrap">{diagnosis}</div>
             </div>
@@ -662,20 +662,20 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
             <h3 className="text-xl font-semibold mb-4">הצעדים הבאים המומלצים:</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               {recommendedActions.map((action) => (
-                <div key={action.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div key={action.id} className="bg-background dark:bg-card border rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-center mb-3">
                     <div className="p-2 bg-primary/10 rounded-full text-primary mr-3">
                       {action.icon}
                     </div>
                     <h4 className="font-medium">{action.title}</h4>
                   </div>
-                  <p className="text-sm text-gray-600">{action.description}</p>
+                  <p className="text-sm text-muted-foreground">{action.description}</p>
                 </div>
               ))}
             </div>
             
             <div className="flex justify-center mt-6">
-              <Link href="/protected/dashboard" className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
+              <Link href="/protected/dashboard" className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
                 חזרה לדאשבורד
               </Link>
             </div>
@@ -685,7 +685,7 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
             <p className="text-lg text-center mb-4">מכין את האבחון שלך...</p>
             <button 
               onClick={generateAIDiagnosis}
-              className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
             >
               צור אבחון
             </button>

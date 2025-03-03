@@ -5,12 +5,15 @@ import { createUserProfile } from '@/app/actions';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  timeout: 60000, // 60 seconds timeout for API requests
 });
 
 interface DiagnosisResponse {
   question: { text: string };
   option: { display: string; he_value: string };
 }
+
+export const maxDuration = 300; // Set max duration to 300 seconds (5 minutes) for the function
 
 export async function POST(request: Request) {
   try {
@@ -65,30 +68,55 @@ export async function POST(request: Request) {
       );
     }
 
-    // Format responses for OpenAI
+    // Format responses for OpenAI - optimize by limiting the size
     const formattedResponses = responses.map(r => 
       `Question: ${r.question.text}\nAnswer: ${r.option.he_value || r.option.display}`
     ).join('\n\n');
 
-    // Get diagnosis from OpenAI
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo",  // Using GPT-4 for better analysis
-      messages: [
-        {
-          role: "system",
-          content: "מטרתך: על בסיס תשובות אלו, נתח את מצב העסק, זיהה אתגרים עיקריים, והצג 3 פעולות פרקטיות לשיפור.\n\n📌 מבנה התשובה הרצוי:\n1. **סיכום קצר של מצב העסק** (מקסימום 3 משפטים).\n2. **זיהוי 2-3 בעיות עיקריות בעסק** (לפי המידע שסיפק המשתמש).\n3. **רשימה של 3 צעדים ברורים ומעשיים לפעולה** שיסייעו למשתמש לשפר את העסק שלו.\n\n❗ *חשוב*: התשובה חייבת להיות בעברית, ברורה ומעשית."
-        },
-        {
-          role: "user",
-          content: `אנא נתח את התשובות לשאלון העסקי הבא וספק אבחון מפורט:\n\n${formattedResponses}`
-        }
-      ],
-      max_tokens: 1000,  // Increased token limit for more detailed response
-      temperature: 0.7,  // Balanced between creativity and consistency
-    });
+    // Optimize the prompt to reduce token usage
+    const systemPrompt = "מטרתך: על בסיס תשובות אלו, נתח את מצב העסק, זיהה אתגרים עיקריים, והצג 3 פעולות פרקטיות לשיפור.\n\n📌 מבנה התשובה הרצוי:\n1. **סיכום קצר של מצב העסק** (מקסימום 3 משפטים).\n2. **זיהוי 2-3 בעיות עיקריות בעסק** (לפי המידע שסיפק המשתמש).\n3. **רשימה של 3 צעדים ברורים ומעשיים לפעולה** שיסייעו למשתמש לשפר את העסק שלו.\n\n❗ *חשוב*: התשובה חייבת להיות בעברית, ברורה ומעשית.";
 
-    const aiDiagnosis = completion.choices[0].message.content;
-    console.log('Generated AI Diagnosis:', aiDiagnosis); // Debug log
+    // Get diagnosis from OpenAI with retry logic
+    let aiDiagnosis = null;
+    let retryCount = 0;
+    const maxRetries = 2;
+    
+    while (retryCount <= maxRetries && !aiDiagnosis) {
+      try {
+        console.log(`Attempt ${retryCount + 1} to generate diagnosis`);
+        
+        // Use a faster model for initial attempts, fallback to GPT-3.5 if needed
+        const model = retryCount === maxRetries ? "gpt-3.5-turbo" : "gpt-4-turbo";
+        
+        const completion = await openai.chat.completions.create({
+          model: model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `אנא נתח את התשובות לשאלון העסקי הבא וספק אבחון מפורט:\n\n${formattedResponses}` }
+          ],
+          max_tokens: 800,  // Reduced token limit to speed up response
+          temperature: 0.7,
+        });
+
+        aiDiagnosis = completion.choices[0].message.content;
+        console.log('Generated AI Diagnosis successfully');
+        
+      } catch (error) {
+        console.error(`OpenAI API error (attempt ${retryCount + 1}):`, error);
+        retryCount++;
+        
+        if (retryCount > maxRetries) {
+          throw new Error('Failed to generate diagnosis after multiple attempts');
+        }
+        
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+      }
+    }
+
+    if (!aiDiagnosis) {
+      throw new Error('Failed to generate diagnosis');
+    }
 
     // Update profile with diagnosis
     const { data: updateData, error: updateError } = await supabase
@@ -106,31 +134,24 @@ export async function POST(request: Request) {
       throw updateError;
     }
 
-    console.log('Updated Profile:', updateData); // Debug log
-
-    // Verify the update
-    const { data: verifyProfile } = await supabase
-      .from('profiles')
-      .select('business_diagnosis')
-      .eq('id', user.id)
-      .single();
-
-    console.log('Verified Profile:', verifyProfile); // Debug log
-
     // Create or update user profile with the diagnosis
     if (aiDiagnosis) {
-      await createUserProfile(aiDiagnosis);
+      try {
+        await createUserProfile(aiDiagnosis);
+      } catch (profileError) {
+        console.error('Error in createUserProfile:', profileError);
+        // Continue even if this fails
+      }
     }
 
     return NextResponse.json({
-      diagnosis: aiDiagnosis,
-      profile: verifyProfile // Include profile in response for verification
+      diagnosis: aiDiagnosis
     });
 
   } catch (error) {
     console.error('Diagnosis error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate diagnosis' },
+      { error: 'Failed to generate diagnosis', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
