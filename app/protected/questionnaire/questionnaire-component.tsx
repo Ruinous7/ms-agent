@@ -562,12 +562,19 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
     setDiagnosisError(null);
     
     try {
+      // Add a timeout to the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 50000); // 50 second timeout
+      
       const response = await fetch('/api/diagnosis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
@@ -617,7 +624,13 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
       
     } catch (error) {
       console.error('Error generating diagnosis:', error);
-      setDiagnosisError('אירעה שגיאה בעת יצירת האבחון. אנא נסה שוב.');
+      
+      // Check if this was an abort error (timeout)
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        setDiagnosisError('תהליך האבחון נמשך זמן רב מדי. אנא נסה שוב מאוחר יותר.');
+      } else {
+        setDiagnosisError('אירעה שגיאה בעת יצירת האבחון. אנא נסה שוב.');
+      }
     } finally {
       setDiagnosisLoading(false);
     }
@@ -633,7 +646,8 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
           <div className="flex flex-col items-center justify-center p-8">
             <Spinner className="mb-4" />
             <p className="text-lg text-center">מייצר אבחון AI מותאם אישית עבורך...</p>
-            <p className="text-sm text-muted-foreground mt-2">זה עשוי לקחת מספר שניות</p>
+            <p className="text-sm text-muted-foreground mt-2">התהליך עשוי להימשך עד דקה</p>
+            <p className="text-xs text-muted-foreground mt-4">אנא המתן בסבלנות</p>
           </div>
         ) : diagnosisError ? (
           <div className="flex flex-col items-center justify-center p-8">
