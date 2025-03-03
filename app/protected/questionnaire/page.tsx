@@ -45,23 +45,20 @@ export default async function QuestionnairePage() {
 
   if (error) {
     console.error('Error fetching questions:', error);
-    return <div>Error loading questionnaire</div>;
+    return (
+      <div className="max-w-5xl mx-auto p-6 bg-card rounded-xl border shadow-sm" dir="rtl">
+        <h2 className="text-xl font-semibold text-destructive">שגיאה בטעינת השאלון</h2>
+        <p className="text-muted-foreground mt-2">אירעה שגיאה בטעינת השאלון. אנא נסה שוב מאוחר יותר.</p>
+      </div>
+    );
   }
 
-  // Set default question_type if not present in the database yet
-  const questionsWithDefaults = questions.map(question => ({
-    ...question,
-    question_type: question.question_type || 'single_select',
-    max_selections: question.max_selections || 1
-  }));
-
   return (
-    <div className="w-full max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6 text-right">שאלון אבחון עסקי</h1>
+    <div className="container py-8">
       <QuestionnaireComponent 
-        initialQuestions={questionsWithDefaults} 
-        initialStages={stages || []}
-        userId={user.id}
+        initialQuestions={questions || []} 
+        initialStages={stages || []} 
+        userId={user.id} 
       />
     </div>
   );

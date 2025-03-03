@@ -20,13 +20,14 @@ export default async function DashboardPage() {
     return redirect("/sign-in");
   }
 
-  // Fetch the user's business diagnosis from the profiles table
+  // Fetch the user's profile with business diagnosis
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('business_diagnosis')
+    .select('business_diagnosis, business_name')
     .eq('id', user.id)
     .single();
 
+  // If profile doesn't exist, redirect to questionnaire
   if (profileError) {
     if (profileError.code === 'PGRST116') {
       return redirect('/protected/questionnaire');
@@ -35,7 +36,14 @@ export default async function DashboardPage() {
     return <div>Error loading profile</div>;
   }
 
-  const businessDiagnosis = profile?.business_diagnosis || "No business diagnosis found.";
+  // If profile exists but no business diagnosis, redirect to questionnaire
+  // This ensures users complete the entire questionnaire
+  if (!profile.business_diagnosis) {
+    return redirect('/protected/questionnaire');
+  }
+
+  const businessDiagnosis = profile.business_diagnosis || "No business diagnosis found.";
+  const businessName = profile.business_name || "Your Business";
 
   const navItems: NavItem[] =  [
     { label: "לוח בקרה", icon: <Home size={20} />, href: "/protected" },
@@ -83,7 +91,7 @@ export default async function DashboardPage() {
           <div className="welcome-banner bg-accent text-sm p-4 rounded-lg text-foreground flex gap-3 items-center">
             <InfoIcon size="20" strokeWidth={2} />
             <div>
-              <h3 className="font-semibold mb-1">ברוכים הבאים ללוח הבקרה!</h3>
+              <h3 className="font-semibold mb-1">ברוכים הבאים {businessName}!</h3>
               <p>כאן תוכלו לנהל את החשבון והפעילויות שלכם.</p>
             </div>
           </div>

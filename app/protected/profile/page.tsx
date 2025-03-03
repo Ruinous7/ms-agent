@@ -110,6 +110,16 @@ export default async function ProfilePage() {
             <div className={styles.additionalInfoGrid}>
               <div className={styles.additionalInfoItem}>
                 <div className={styles.infoIcon}>
+                  <FiBriefcase />
+                </div>
+                <div className={styles.infoContent}>
+                  <h3>שם העסק</h3>
+                  <p className={styles.infoValue}>{profile.business_name || 'לא צוין'}</p>
+                </div>
+              </div>
+              
+              <div className={styles.additionalInfoItem}>
+                <div className={styles.infoIcon}>
                   <FiMapPin />
                 </div>
                 <div className={styles.infoContent}>

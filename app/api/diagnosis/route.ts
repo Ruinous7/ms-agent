@@ -72,18 +72,19 @@ export async function POST(request: Request) {
 
     // Get diagnosis from OpenAI
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4-turbo",  // Using GPT-4 for better analysis
       messages: [
         {
           role: "system",
-          content: "אתה יועץ עסקי המנתח תשובות לשאלון. ספק אבחון עסקי תמציתי והמלצות מפתח בהתבסס על התשובות. ענה בעברית."
+          content: "מטרתך: על בסיס תשובות אלו, נתח את מצב העסק, זיהה אתגרים עיקריים, והצג 3 פעולות פרקטיות לשיפור.\n\n📌 מבנה התשובה הרצוי:\n1. **סיכום קצר של מצב העסק** (מקסימום 3 משפטים).\n2. **זיהוי 2-3 בעיות עיקריות בעסק** (לפי המידע שסיפק המשתמש).\n3. **רשימה של 3 צעדים ברורים ומעשיים לפעולה** שיסייעו למשתמש לשפר את העסק שלו.\n\n❗ *חשוב*: התשובה חייבת להיות בעברית, ברורה ומעשית."
         },
         {
           role: "user",
-          content: `אנא נתח את התשובות לשאלון העסקי הבא וספק אבחון קצר:\n\n${formattedResponses}`
+          content: `אנא נתח את התשובות לשאלון העסקי הבא וספק אבחון מפורט:\n\n${formattedResponses}`
         }
       ],
-      max_tokens: 500,
+      max_tokens: 1000,  // Increased token limit for more detailed response
+      temperature: 0.7,  // Balanced between creativity and consistency
     });
 
     const aiDiagnosis = completion.choices[0].message.content;

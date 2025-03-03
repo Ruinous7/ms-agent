@@ -33,6 +33,11 @@ export default function EditProfilePage() {
             </div>
             
             <div className={styles.formGroup}>
+              <label htmlFor="business_name">שם העסק</label>
+              <input type="text" id="business_name" name="business_name" placeholder="שם העסק שלך" disabled />
+            </div>
+            
+            <div className={styles.formGroup}>
               <label htmlFor="bio">אודות</label>
               <textarea 
                 id="bio" 
