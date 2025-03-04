@@ -85,34 +85,31 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
         return;
       }
 
-      // Use upsert instead of delete + insert to avoid race conditions
-      const { error: upsertError } = await supabase
-        .from('responses')
-        .upsert({
-          user_id: userId,
-          question_id: questionId,
-          option_id: optionId,
-        }, {
-          onConflict: 'user_id,question_id,option_id',
-          ignoreDuplicates: true
-        });
-
-      if (upsertError) {
-        console.error('Error upserting response:', upsertError);
-        setError('אירעה שגיאה בשמירת התשובה. אנא נסה שוב.');
-        return;
-      }
-
-      // Delete any other responses for this question (for single select, we only want one)
+      // First, delete all existing responses for this question
       const { error: deleteError } = await supabase
         .from('responses')
         .delete()
-        .match({ user_id: userId, question_id: questionId })
-        .neq('option_id', optionId);
+        .match({ user_id: userId, question_id: questionId });
       
       if (deleteError) {
-        console.error('Error cleaning up other responses:', deleteError);
-        // Continue anyway since the main response was saved
+        console.error('Error deleting existing responses:', deleteError);
+        setError('אירעה שגיאה במחיקת תשובות קיימות. אנא נסה שוב.');
+        return;
+      }
+      
+      // Then insert the new response
+      const { error: insertError } = await supabase
+        .from('responses')
+        .insert({
+          user_id: userId,
+          question_id: questionId,
+          option_id: optionId,
+        });
+
+      if (insertError) {
+        console.error('Error inserting response:', insertError);
+        setError('אירעה שגיאה בשמירת התשובה. אנא נסה שוב.');
+        return;
       }
 
       // Auto-advance to next question
@@ -176,7 +173,16 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
         throw new Error('Failed to fetch existing responses');
       }
       
-      // Determine which options to delete (those that are no longer selected)
+      // Create a map of existing option_ids to response ids
+      const existingOptionsMap = new Map();
+      if (existingResponses) {
+        existingResponses.forEach(response => {
+          existingOptionsMap.set(response.option_id, response.id);
+        });
+      }
+      
+      // Determine which options to add, update, or delete
+      const optionsToAdd = selections.filter(optionId => !existingOptionsMap.has(optionId));
       const optionsToDelete = existingResponses
         ? existingResponses
             .filter(response => !selections.includes(response.option_id))
@@ -196,26 +202,41 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
         }
       }
       
-      // Add new responses for selected options using upsert
-      if (selections.length > 0) {
-        // Prepare upsert data
-        const responsesToUpsert = selections.map(optionId => ({
-          user_id: userId,
-          question_id: questionId,
-          option_id: optionId,
-        }));
-        
-        // Upsert all responses at once
-        const { error: upsertError } = await supabase
-          .from('responses')
-          .upsert(responsesToUpsert, {
-            onConflict: 'user_id,question_id,option_id',
-            ignoreDuplicates: true
-          });
+      // Add new responses for newly selected options
+      if (optionsToAdd.length > 0) {
+        // Insert responses one by one to handle potential constraint violations
+        for (const optionId of optionsToAdd) {
+          // Check if this option already exists (might have been added in another session)
+          const { data: existingOption, error: checkError } = await supabase
+            .from('responses')
+            .select('id')
+            .match({ 
+              user_id: userId, 
+              question_id: questionId,
+              option_id: optionId
+            })
+            .maybeSingle();
           
-        if (upsertError) {
-          console.error('Error upserting responses:', upsertError);
-          throw new Error('Failed to save responses');
+          if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
+            console.error('Error checking existing option:', checkError);
+            continue; // Skip this option but continue with others
+          }
+          
+          if (!existingOption) {
+            // Insert the new response
+            const { error: insertError } = await supabase
+              .from('responses')
+              .insert({
+                user_id: userId,
+                question_id: questionId,
+                option_id: optionId,
+              });
+              
+            if (insertError) {
+              console.error(`Error inserting response for option ${optionId}:`, insertError);
+              // Continue with other options even if this one fails
+            }
+          }
         }
       }
     } catch (error) {
@@ -520,11 +541,11 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
     setError(null);
     
     try {
-      // Just mark the questionnaire as completed, don't generate diagnosis yet
-      // The user will click a button to generate the diagnosis
-      setIsSubmitting(false);
+      // Generate AI diagnosis
+      await generateAIDiagnosis();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -534,84 +555,84 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
   const [diagnosis, setDiagnosis] = useState<string | null>(null);
   const [recommendedActions, setRecommendedActions] = useState<any[]>([]);
-  const [marketingMessages, setMarketingMessages] = useState<string[]>([]);
-  const [targetAudience, setTargetAudience] = useState<string[]>([]);
-  const [insightsLoading, setInsightsLoading] = useState(false);
-  const [insightsError, setInsightsError] = useState<string | null>(null);
 
   // Function to generate AI diagnosis
   const generateAIDiagnosis = async () => {
+    setDiagnosisLoading(true);
+    setDiagnosisError(null);
+    
     try {
-      setDiagnosisLoading(true);
-      setDiagnosisError(null);
+      // Add a timeout to the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 50000); // 50 second timeout
       
-      // Try the main diagnosis endpoint first
       const response = await fetch('/api/diagnosis', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal
       });
       
-      // If the main endpoint fails or times out, try the fallback
-      if (!response.ok) {
-        console.log('Main diagnosis endpoint failed, trying fallback...');
-        
-        // Wait a moment before trying the fallback to ensure the request is fully terminated
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const fallbackResponse = await fetch('/api/diagnosis-fallback', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (!fallbackResponse.ok) {
-          throw new Error('Both diagnosis endpoints failed. Please try again later.');
-        }
-        
-        const fallbackData = await fallbackResponse.json();
-        setDiagnosis(fallbackData.diagnosis);
-        setDiagnosisLoading(false);
-        return;
-      }
-      
-      const data = await response.json();
-      setDiagnosis(data.diagnosis);
-      setDiagnosisLoading(false);
-    } catch (error) {
-      console.error('Error generating diagnosis:', error);
-      setDiagnosisError('אירעה שגיאה בייצור האבחון. אנא נסה שוב מאוחר יותר.');
-      setDiagnosisLoading(false);
-    }
-  };
-
-  // Function to generate business insights (marketing messages and target audience)
-  const generateBusinessInsights = async () => {
-    try {
-      setInsightsLoading(true);
-      setInsightsError(null);
-      
-      const response = await fetch('/api/business-insights', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
       
       const data = await response.json();
-      setMarketingMessages(data.messages || []);
-      setTargetAudience(data.audience || []);
-      setInsightsLoading(false);
+      setDiagnosis(data.diagnosis);
+      
+      // Set default recommended actions
+      setRecommendedActions([
+        {
+          id: 'marketing',
+          title: 'תוכנית שיווק',
+          description: 'פיתוח אסטרטגיית שיווק מותאמת אישית לעסק שלך',
+          icon: (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20V10"></path>
+              <path d="M18 20V4"></path>
+              <path d="M6 20v-4"></path>
+            </svg>
+          ),
+        },
+        {
+          id: 'content',
+          title: 'אסטרטגיית תוכן',
+          description: 'יצירת תוכן שמושך לקוחות ובונה את המותג שלך',
+          icon: (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+          ),
+        },
+        {
+          id: 'goals',
+          title: 'יעדים עסקיים',
+          description: 'הגדרת יעדים ברורים ומדידים להצלחת העסק',
+          icon: (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="6"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+            </svg>
+          ),
+        },
+      ]);
+      
     } catch (error) {
-      console.error('Error generating business insights:', error);
-      setInsightsError('אירעה שגיאה בייצור תובנות עסקיות. אנא נסה שוב מאוחר יותר.');
-      setInsightsLoading(false);
+      console.error('Error generating diagnosis:', error);
+      
+      // Check if this was an abort error (timeout)
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        setDiagnosisError('תהליך האבחון נמשך זמן רב מדי. אנא נסה שוב מאוחר יותר.');
+      } else {
+        setDiagnosisError('אירעה שגיאה בעת יצירת האבחון. אנא נסה שוב.');
+      }
+    } finally {
+      setDiagnosisLoading(false);
     }
   };
 
@@ -621,12 +642,10 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
       <div className="flex flex-col items-center justify-center p-6 bg-card dark:bg-card rounded-lg shadow-md max-w-3xl mx-auto">
         <h2 className="text-2xl font-bold mb-6 text-center">תודה על השלמת השאלון!</h2>
         
-        {diagnosisLoading || insightsLoading ? (
+        {diagnosisLoading ? (
           <div className="flex flex-col items-center justify-center p-8">
             <Spinner className="mb-4" />
-            <p className="text-lg text-center">
-              {diagnosisLoading ? 'מייצר אבחון AI מותאם אישית עבורך...' : 'מייצר תובנות שיווקיות עבורך...'}
-            </p>
+            <p className="text-lg text-center">מייצר אבחון AI מותאם אישית עבורך...</p>
             <p className="text-sm text-muted-foreground mt-2">התהליך עשוי להימשך עד דקה</p>
             <p className="text-xs text-muted-foreground mt-4">אנא המתן בסבלנות</p>
           </div>
@@ -654,65 +673,30 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
               <div className="whitespace-pre-wrap">{diagnosis}</div>
             </div>
             
-            {/* Marketing Messages Section */}
-            {marketingMessages.length > 0 && (
-              <div className="bg-accent/50 dark:bg-accent/20 p-6 rounded-lg mb-8 border">
-                <h3 className="text-xl font-semibold mb-4">מסרים שיווקיים מומלצים:</h3>
-                <ul className="list-disc list-inside space-y-2">
-                  {marketingMessages.map((message, index) => (
-                    <li key={index} className="text-foreground">{message}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <h3 className="text-xl font-semibold mb-4">הצעדים הבאים המומלצים:</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              {recommendedActions.map((action) => (
+                <div key={action.id} className="bg-background dark:bg-card border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-center mb-3">
+                    <div className="p-2 bg-primary/10 rounded-full text-primary mr-3">
+                      {action.icon}
+                    </div>
+                    <h4 className="font-medium">{action.title}</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{action.description}</p>
+                </div>
+              ))}
+            </div>
             
-            {/* Target Audience Section */}
-            {targetAudience.length > 0 && (
-              <div className="bg-accent/50 dark:bg-accent/20 p-6 rounded-lg mb-8 border">
-                <h3 className="text-xl font-semibold mb-4">קהלי יעד מומלצים:</h3>
-                <ul className="list-disc list-inside space-y-2">
-                  {targetAudience.map((audience, index) => (
-                    <li key={index} className="text-foreground">{audience}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {insightsError && (
-              <div className="bg-destructive/10 p-4 rounded-lg mb-8 border border-destructive/30">
-                <p className="text-destructive">{insightsError}</p>
-                <button 
-                  onClick={generateBusinessInsights}
-                  className="mt-2 px-4 py-1 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm"
-                >
-                  נסה שוב לייצר תובנות
-                </button>
-              </div>
-            )}
-            
-            {/* Button to generate business insights if not already generated */}
-            {!marketingMessages.length && !targetAudience.length && !insightsLoading && !insightsError && (
-              <div className="flex justify-center mb-8">
-                <button 
-                  onClick={generateBusinessInsights}
-                  className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  קבל תובנות שיווקיות
-                </button>
-              </div>
-            )}
-            
-            <div className="flex justify-center mt-8">
-              <Link href="/protected">
-                <Button className="px-6 py-2">
-                  חזור לדף הבית
-                </Button>
+            <div className="flex justify-center mt-6">
+              <Link href="/protected" className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                חזרה לדאשבורד
               </Link>
             </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center p-8">
-            <p className="text-lg text-center mb-4">לחץ על הכפתור למטה כדי לקבל אבחון עסקי מותאם אישית</p>
+            <p className="text-lg text-center mb-4">מכין את האבחון שלך...</p>
             <button 
               onClick={generateAIDiagnosis}
               className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
