@@ -85,31 +85,34 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
         return;
       }
 
-      // First, delete all existing responses for this question
-      const { error: deleteError } = await supabase
+      // Use upsert instead of delete + insert to avoid race conditions
+      const { error: upsertError } = await supabase
         .from('responses')
-        .delete()
-        .match({ user_id: userId, question_id: questionId });
-      
-      if (deleteError) {
-        console.error('Error deleting existing responses:', deleteError);
-        setError('אירעה שגיאה במחיקת תשובות קיימות. אנא נסה שוב.');
-        return;
-      }
-      
-      // Then insert the new response
-      const { error: insertError } = await supabase
-        .from('responses')
-        .insert({
+        .upsert({
           user_id: userId,
           question_id: questionId,
           option_id: optionId,
+        }, {
+          onConflict: 'user_id,question_id,option_id',
+          ignoreDuplicates: true
         });
 
-      if (insertError) {
-        console.error('Error inserting response:', insertError);
+      if (upsertError) {
+        console.error('Error upserting response:', upsertError);
         setError('אירעה שגיאה בשמירת התשובה. אנא נסה שוב.');
         return;
+      }
+
+      // Delete any other responses for this question (for single select, we only want one)
+      const { error: deleteError } = await supabase
+        .from('responses')
+        .delete()
+        .match({ user_id: userId, question_id: questionId })
+        .neq('option_id', optionId);
+      
+      if (deleteError) {
+        console.error('Error cleaning up other responses:', deleteError);
+        // Continue anyway since the main response was saved
       }
 
       // Auto-advance to next question
@@ -173,16 +176,7 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
         throw new Error('Failed to fetch existing responses');
       }
       
-      // Create a map of existing option_ids to response ids
-      const existingOptionsMap = new Map();
-      if (existingResponses) {
-        existingResponses.forEach(response => {
-          existingOptionsMap.set(response.option_id, response.id);
-        });
-      }
-      
-      // Determine which options to add, update, or delete
-      const optionsToAdd = selections.filter(optionId => !existingOptionsMap.has(optionId));
+      // Determine which options to delete (those that are no longer selected)
       const optionsToDelete = existingResponses
         ? existingResponses
             .filter(response => !selections.includes(response.option_id))
@@ -202,41 +196,26 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
         }
       }
       
-      // Add new responses for newly selected options
-      if (optionsToAdd.length > 0) {
-        // Insert responses one by one to handle potential constraint violations
-        for (const optionId of optionsToAdd) {
-          // Check if this option already exists (might have been added in another session)
-          const { data: existingOption, error: checkError } = await supabase
-            .from('responses')
-            .select('id')
-            .match({ 
-              user_id: userId, 
-              question_id: questionId,
-              option_id: optionId
-            })
-            .maybeSingle();
+      // Add new responses for selected options using upsert
+      if (selections.length > 0) {
+        // Prepare upsert data
+        const responsesToUpsert = selections.map(optionId => ({
+          user_id: userId,
+          question_id: questionId,
+          option_id: optionId,
+        }));
+        
+        // Upsert all responses at once
+        const { error: upsertError } = await supabase
+          .from('responses')
+          .upsert(responsesToUpsert, {
+            onConflict: 'user_id,question_id,option_id',
+            ignoreDuplicates: true
+          });
           
-          if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
-            console.error('Error checking existing option:', checkError);
-            continue; // Skip this option but continue with others
-          }
-          
-          if (!existingOption) {
-            // Insert the new response
-            const { error: insertError } = await supabase
-              .from('responses')
-              .insert({
-                user_id: userId,
-                question_id: questionId,
-                option_id: optionId,
-              });
-              
-            if (insertError) {
-              console.error(`Error inserting response for option ${optionId}:`, insertError);
-              // Continue with other options even if this one fails
-            }
-          }
+        if (upsertError) {
+          console.error('Error upserting responses:', upsertError);
+          throw new Error('Failed to save responses');
         }
       }
     } catch (error) {
