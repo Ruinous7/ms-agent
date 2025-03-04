@@ -33,6 +33,11 @@ export default function Sidebar() {
       icon: <FiUser />,
       label: 'פרופיל'
     },
+    {
+      href: '/protected/actions',
+      icon: <FiBarChart2 />,
+      label: 'פעולות'
+    }
   ];
   
   const handleLogout = async () => {

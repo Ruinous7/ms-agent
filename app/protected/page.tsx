@@ -60,20 +60,6 @@ export default async function DashboardPage() {
       href: '/protected/actions/marketing-plan'
     },
     {
-      id: 'content-strategy',
-      label: 'אסטרטגיית תוכן',
-      description: 'קבל רעיונות לתוכן ותוכנית פרסום לרשתות חברתיות',
-      icon: <FileText size={20} />,
-      href: '/protected/actions/content-strategy'
-    },
-    {
-      id: 'business-goals',
-      label: 'יעדים עסקיים',
-      description: 'הגדר יעדים חכמים ומדידים לעסק שלך',
-      icon: <Target size={20} />,
-      href: '/protected/actions/business-goals'
-    },
-    {
       id: 'post-generator',
       label: 'יוצר פוסטים',
       description: 'צור פוסטים מותאמים אישית לרשתות חברתיות',
