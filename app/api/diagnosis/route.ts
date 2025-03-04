@@ -1,7 +1,6 @@
 import OpenAI from 'openai';
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
-import { createUserProfile } from '@/app/actions';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -14,7 +13,9 @@ interface DiagnosisResponse {
 
 // Set maxDuration to 60 seconds (maximum allowed for hobby plan)
 export const config = {
-  maxDuration: 60
+  maxDuration: 60,
+  // Add runtime configuration for Edge runtime to improve performance
+  runtime: 'edge'
 };
 
 export async function POST(request: Request) {
@@ -25,32 +26,6 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if profile exists
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "not found" error
-      throw profileError;
-    }
-
-    // Create profile if it doesn't exist
-    if (!profile) {
-      const { error: createError } = await supabase
-        .from('profiles')
-        .insert([
-          { 
-            id: user.id,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ]);
-
-      if (createError) throw createError;
     }
 
     // Fetch user's responses with questions and answers
@@ -70,14 +45,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Format responses for OpenAI
-    const formattedResponses = responses.map(r => 
-      `Question: ${r.question.text}\nAnswer: ${r.option.he_value || r.option.display}`
-    ).join('\n\n');
+    // Format responses for OpenAI - optimize by pre-allocating array size
+    const formattedResponses = new Array(responses.length);
+    for (let i = 0; i < responses.length; i++) {
+      const r = responses[i];
+      formattedResponses[i] = `Question: ${r.question.text}\nAnswer: ${r.option.he_value || r.option.display}`;
+    }
+    const formattedResponsesText = formattedResponses.join('\n\n');
 
-    // Get diagnosis from OpenAI
+    // Get diagnosis from OpenAI with optimized settings
     const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo",  // Using GPT-4 for better analysis
+      model: "gpt-4-turbo",
       messages: [
         {
           role: "system",
@@ -85,51 +63,34 @@ export async function POST(request: Request) {
         },
         {
           role: "user",
-          content: `אנא נתח את התשובות לשאלון העסקי הבא וספק אבחון מפורט:\n\n${formattedResponses}`
+          content: `אנא נתח את התשובות לשאלון העסקי הבא וספק אבחון מפורט:\n\n${formattedResponsesText}`
         }
       ],
-      max_tokens: 1000,  // Increased token limit for more detailed response
-      temperature: 0.7,  // Balanced between creativity and consistency
+      max_tokens: 800,  // Reduced token limit to speed up response
+      temperature: 0.7,
     });
 
     const aiDiagnosis = completion.choices[0].message.content;
-    console.log('Generated AI Diagnosis:', aiDiagnosis); // Debug log
 
-    // Update profile with diagnosis
-    const { data: updateData, error: updateError } = await supabase
+    // Update profile with diagnosis - single database operation
+    const { error: updateError } = await supabase
       .from('profiles')
-      .update({ 
+      .upsert({ 
+        id: user.id,
         business_diagnosis: aiDiagnosis,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', user.id)
-      .select() // Add this to get the updated record
-      .single();
+        updated_at: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      }, {
+        onConflict: 'id'
+      });
 
     if (updateError) {
       console.error('Error saving diagnosis:', updateError);
       throw updateError;
     }
 
-    console.log('Updated Profile:', updateData); // Debug log
-
-    // Verify the update
-    const { data: verifyProfile } = await supabase
-      .from('profiles')
-      .select('business_diagnosis')
-      .eq('id', user.id)
-      .single();
-
-    console.log('Verified Profile:', verifyProfile); // Debug log
-
-    // Create or update user profile with the diagnosis
-    if (aiDiagnosis) {
-      await createUserProfile(aiDiagnosis);
-    }
-
     return NextResponse.json({
-      diagnosis: aiDiagnosis,
-      profile: verifyProfile // Include profile in response for verification
+      diagnosis: aiDiagnosis
     });
 
   } catch (error) {
