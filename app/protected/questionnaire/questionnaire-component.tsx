@@ -520,11 +520,11 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
     setError(null);
     
     try {
-      // Generate AI diagnosis
-      await generateAIDiagnosis();
+      // Just mark the questionnaire as completed, don't generate diagnosis yet
+      // The user will click a button to generate the diagnosis
+      setIsSubmitting(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -574,18 +574,12 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
         const fallbackData = await fallbackResponse.json();
         setDiagnosis(fallbackData.diagnosis);
         setDiagnosisLoading(false);
-        
-        // After getting the diagnosis, generate business insights
-        await generateBusinessInsights();
         return;
       }
       
       const data = await response.json();
       setDiagnosis(data.diagnosis);
       setDiagnosisLoading(false);
-      
-      // After getting the diagnosis, generate business insights
-      await generateBusinessInsights();
     } catch (error) {
       console.error('Error generating diagnosis:', error);
       setDiagnosisError('אירעה שגיאה בייצור האבחון. אנא נסה שוב מאוחר יותר.');
@@ -630,7 +624,9 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
         {diagnosisLoading || insightsLoading ? (
           <div className="flex flex-col items-center justify-center p-8">
             <Spinner className="mb-4" />
-            <p className="text-lg text-center">מייצר אבחון AI מותאם אישית עבורך...</p>
+            <p className="text-lg text-center">
+              {diagnosisLoading ? 'מייצר אבחון AI מותאם אישית עבורך...' : 'מייצר תובנות שיווקיות עבורך...'}
+            </p>
             <p className="text-sm text-muted-foreground mt-2">התהליך עשוי להימשך עד דקה</p>
             <p className="text-xs text-muted-foreground mt-4">אנא המתן בסבלנות</p>
           </div>
@@ -694,6 +690,18 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
               </div>
             )}
             
+            {/* Button to generate business insights if not already generated */}
+            {!marketingMessages.length && !targetAudience.length && !insightsLoading && !insightsError && (
+              <div className="flex justify-center mb-8">
+                <button 
+                  onClick={generateBusinessInsights}
+                  className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  קבל תובנות שיווקיות
+                </button>
+              </div>
+            )}
+            
             <div className="flex justify-center mt-8">
               <Link href="/protected">
                 <Button className="px-6 py-2">
@@ -702,7 +710,17 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
               </Link>
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="flex flex-col items-center justify-center p-8">
+            <p className="text-lg text-center mb-4">לחץ על הכפתור למטה כדי לקבל אבחון עסקי מותאם אישית</p>
+            <button 
+              onClick={generateAIDiagnosis}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            >
+              צור אבחון
+            </button>
+          </div>
+        )}
       </div>
     );
   };
