@@ -534,84 +534,90 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
   const [diagnosis, setDiagnosis] = useState<string | null>(null);
   const [recommendedActions, setRecommendedActions] = useState<any[]>([]);
+  const [marketingMessages, setMarketingMessages] = useState<string[]>([]);
+  const [targetAudience, setTargetAudience] = useState<string[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
 
   // Function to generate AI diagnosis
   const generateAIDiagnosis = async () => {
-    setDiagnosisLoading(true);
-    setDiagnosisError(null);
-    
     try {
-      // Add a timeout to the fetch request
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 50000); // 50 second timeout
+      setDiagnosisLoading(true);
+      setDiagnosisError(null);
       
+      // Try the main diagnosis endpoint first
       const response = await fetch('/api/diagnosis', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal
+          'Content-Type': 'application/json'
+        }
       });
       
-      clearTimeout(timeoutId);
+      // If the main endpoint fails or times out, try the fallback
+      if (!response.ok) {
+        console.log('Main diagnosis endpoint failed, trying fallback...');
+        
+        // Wait a moment before trying the fallback to ensure the request is fully terminated
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const fallbackResponse = await fetch('/api/diagnosis-fallback', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!fallbackResponse.ok) {
+          throw new Error('Both diagnosis endpoints failed. Please try again later.');
+        }
+        
+        const fallbackData = await fallbackResponse.json();
+        setDiagnosis(fallbackData.diagnosis);
+        setDiagnosisLoading(false);
+        
+        // After getting the diagnosis, generate business insights
+        await generateBusinessInsights();
+        return;
+      }
+      
+      const data = await response.json();
+      setDiagnosis(data.diagnosis);
+      setDiagnosisLoading(false);
+      
+      // After getting the diagnosis, generate business insights
+      await generateBusinessInsights();
+    } catch (error) {
+      console.error('Error generating diagnosis:', error);
+      setDiagnosisError('אירעה שגיאה בייצור האבחון. אנא נסה שוב מאוחר יותר.');
+      setDiagnosisLoading(false);
+    }
+  };
+
+  // Function to generate business insights (marketing messages and target audience)
+  const generateBusinessInsights = async () => {
+    try {
+      setInsightsLoading(true);
+      setInsightsError(null);
+      
+      const response = await fetch('/api/business-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
       
       const data = await response.json();
-      setDiagnosis(data.diagnosis);
-      
-      // Set default recommended actions
-      setRecommendedActions([
-        {
-          id: 'marketing',
-          title: 'תוכנית שיווק',
-          description: 'פיתוח אסטרטגיית שיווק מותאמת אישית לעסק שלך',
-          icon: (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 20V10"></path>
-              <path d="M18 20V4"></path>
-              <path d="M6 20v-4"></path>
-            </svg>
-          ),
-        },
-        {
-          id: 'content',
-          title: 'אסטרטגיית תוכן',
-          description: 'יצירת תוכן שמושך לקוחות ובונה את המותג שלך',
-          icon: (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-            </svg>
-          ),
-        },
-        {
-          id: 'goals',
-          title: 'יעדים עסקיים',
-          description: 'הגדרת יעדים ברורים ומדידים להצלחת העסק',
-          icon: (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <circle cx="12" cy="12" r="6"></circle>
-              <circle cx="12" cy="12" r="2"></circle>
-            </svg>
-          ),
-        },
-      ]);
-      
+      setMarketingMessages(data.messages || []);
+      setTargetAudience(data.audience || []);
+      setInsightsLoading(false);
     } catch (error) {
-      console.error('Error generating diagnosis:', error);
-      
-      // Check if this was an abort error (timeout)
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        setDiagnosisError('תהליך האבחון נמשך זמן רב מדי. אנא נסה שוב מאוחר יותר.');
-      } else {
-        setDiagnosisError('אירעה שגיאה בעת יצירת האבחון. אנא נסה שוב.');
-      }
-    } finally {
-      setDiagnosisLoading(false);
+      console.error('Error generating business insights:', error);
+      setInsightsError('אירעה שגיאה בייצור תובנות עסקיות. אנא נסה שוב מאוחר יותר.');
+      setInsightsLoading(false);
     }
   };
 
@@ -621,7 +627,7 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
       <div className="flex flex-col items-center justify-center p-6 bg-card dark:bg-card rounded-lg shadow-md max-w-3xl mx-auto">
         <h2 className="text-2xl font-bold mb-6 text-center">תודה על השלמת השאלון!</h2>
         
-        {diagnosisLoading ? (
+        {diagnosisLoading || insightsLoading ? (
           <div className="flex flex-col items-center justify-center p-8">
             <Spinner className="mb-4" />
             <p className="text-lg text-center">מייצר אבחון AI מותאם אישית עבורך...</p>
@@ -652,38 +658,51 @@ export default function QuestionnaireComponent({ initialQuestions, initialStages
               <div className="whitespace-pre-wrap">{diagnosis}</div>
             </div>
             
-            <h3 className="text-xl font-semibold mb-4">הצעדים הבאים המומלצים:</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              {recommendedActions.map((action) => (
-                <div key={action.id} className="bg-background dark:bg-card border rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-center mb-3">
-                    <div className="p-2 bg-primary/10 rounded-full text-primary mr-3">
-                      {action.icon}
-                    </div>
-                    <h4 className="font-medium">{action.title}</h4>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{action.description}</p>
-                </div>
-              ))}
-            </div>
+            {/* Marketing Messages Section */}
+            {marketingMessages.length > 0 && (
+              <div className="bg-accent/50 dark:bg-accent/20 p-6 rounded-lg mb-8 border">
+                <h3 className="text-xl font-semibold mb-4">מסרים שיווקיים מומלצים:</h3>
+                <ul className="list-disc list-inside space-y-2">
+                  {marketingMessages.map((message, index) => (
+                    <li key={index} className="text-foreground">{message}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             
-            <div className="flex justify-center mt-6">
-              <Link href="/protected/dashboard" className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-                חזרה לדאשבורד
+            {/* Target Audience Section */}
+            {targetAudience.length > 0 && (
+              <div className="bg-accent/50 dark:bg-accent/20 p-6 rounded-lg mb-8 border">
+                <h3 className="text-xl font-semibold mb-4">קהלי יעד מומלצים:</h3>
+                <ul className="list-disc list-inside space-y-2">
+                  {targetAudience.map((audience, index) => (
+                    <li key={index} className="text-foreground">{audience}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {insightsError && (
+              <div className="bg-destructive/10 p-4 rounded-lg mb-8 border border-destructive/30">
+                <p className="text-destructive">{insightsError}</p>
+                <button 
+                  onClick={generateBusinessInsights}
+                  className="mt-2 px-4 py-1 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm"
+                >
+                  נסה שוב לייצר תובנות
+                </button>
+              </div>
+            )}
+            
+            <div className="flex justify-center mt-8">
+              <Link href="/protected">
+                <Button className="px-6 py-2">
+                  חזור לדף הבית
+                </Button>
               </Link>
             </div>
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center p-8">
-            <p className="text-lg text-center mb-4">מכין את האבחון שלך...</p>
-            <button 
-              onClick={generateAIDiagnosis}
-              className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-            >
-              צור אבחון
-            </button>
-          </div>
-        )}
+        ) : null}
       </div>
     );
   };
