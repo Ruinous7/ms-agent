@@ -29,6 +29,11 @@ export default function Sidebar() {
       label: 'סיכום אבחון'
     },
     {
+      href: '/protected/products',
+      icon: <FiFileText />,
+      label: 'מוצרים'
+    },
+    {
       href: '/protected/profile',
       icon: <FiUser />,
       label: 'פרופיל'
