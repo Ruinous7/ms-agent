@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     `;
     
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "אתה מומחה לשיווק ופילוח קהלים. אתה מזהה קהלי יעד מדויקים בהתבסס על אבחון עסקי. אתה כותב בעברית מצוינת ובסגנון מקצועי ומובנה. אתה מקפיד לעקוב אחר ההנחיות בדיוק ולהשתמש במבנה המבוקש." },
         { role: "user", content: prompt }
