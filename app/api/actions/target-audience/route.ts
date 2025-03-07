@@ -1,6 +1,8 @@
-import OpenAI from 'openai';
+'use server';
+
 import { createClient } from '@/utils/supabase/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import OpenAI from 'openai';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -16,60 +18,78 @@ export const config = {
   }
 };
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     
-    // Check authentication
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
     }
-
-    // Get the user's diagnosis from the profile
+    
+    // Get business diagnosis
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('business_diagnosis')
       .eq('id', user.id)
       .single();
-
-    if (profileError || !profile?.business_diagnosis) {
+    
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
       return NextResponse.json(
-        { error: 'No diagnosis found. Please complete the diagnosis first.' },
-        { status: 404 }
+        { error: 'Failed to fetch business diagnosis' },
+        { status: 500 }
       );
     }
-
-    const diagnosis = profile.business_diagnosis;
-
-    // Generate target audience
-    const audienceCompletion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+    
+    if (!profile?.business_diagnosis) {
+      return NextResponse.json(
+        { error: 'Business diagnosis not found' },
+        { status: 400 }
+      );
+    }
+    
+    // Generate target audience using OpenAI
+    const prompt = `
+      זיהוי קהלי יעד עבור העסק הבא:
+      
+      אבחון עסקי: ${profile.business_diagnosis}
+      
+      אנא זהה 3-5 קהלי יעד מדויקים שיהיו הכי רלוונטיים לעסק זה.
+      עבור כל קהל יעד, ספק:
+      1. שם הקהל
+      2. תיאור קצר
+      3. מאפיינים עיקריים (דמוגרפיים, פסיכוגרפיים, התנהגותיים)
+      
+      הפרד כל קהל יעד בצורה ברורה ומובנית.
+    `;
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
       messages: [
-        {
-          role: "system",
-          content: "אתה יועץ שיווקי מומחה. עליך לזהות 3-5 קהלי יעד ספציפיים לעסק בהתבסס על האבחון שסופק. הקהלים צריכים להיות בפורמט של טקסט רגיל, כל קהל יעד בשורה נפרדת עם מספור ותיאור קצר."
-        },
-        {
-          role: "user",
-          content: `בהתבסס על האבחון העסקי הבא, זהה 3-5 קהלי יעד ספציפיים שהעסק צריך לפנות אליהם. לכל קהל יעד, ספק תיאור קצר. החזר את התשובה כטקסט רגיל, כל קהל יעד בשורה נפרדת עם מספור.\n\nאבחון העסק:\n${diagnosis}`
-        }
+        { role: "system", content: "אתה מומחה לשיווק ופילוח קהלים. אתה מזהה קהלי יעד מדויקים בהתבסס על אבחון עסקי. אתה כותב בעברית מצוינת ובסגנון מקצועי ומובנה." },
+        { role: "user", content: prompt }
       ],
-      max_tokens: 500,
       temperature: 0.7,
+      max_tokens: 1000,
     });
-
-    const targetAudience = audienceCompletion.choices[0].message.content || 'לא ניתן היה לזהות קהלי יעד. אנא נסה שוב מאוחר יותר.';
-
-    // Update the profile with the new target audience
+    
+    const audience = response.choices[0]?.message?.content || "לא ניתן היה לזהות קהלי יעד. נסה שוב מאוחר יותר.";
+    
+    // Update the profile with the generated audience
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
-        target_audience: targetAudience,
-        updated_at: new Date().toISOString()
+        target_audience: audience,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);
-
+    
     if (updateError) {
       console.error('Error updating profile with target audience:', updateError);
       return NextResponse.json(
@@ -77,13 +97,10 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
-
-    return NextResponse.json({
-      audience: targetAudience
-    });
-
+    
+    return NextResponse.json({ audience });
   } catch (error) {
-    console.error('Target audience error:', error);
+    console.error('Error generating target audience:', error);
     return NextResponse.json(
       { error: 'Failed to generate target audience' },
       { status: 500 }
