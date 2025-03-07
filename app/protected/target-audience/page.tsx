@@ -104,42 +104,114 @@ export default function TargetAudiencePage() {
 
     try {
       setIsGenerating(true);
+      
+      // Clear existing audiences first
+      for (const audience of targetAudiences) {
+        await deleteTargetAudience(audience.id);
+      }
+      setTargetAudiences([]);
+      
       const generatedAudience = await generateTargetAudience(profile.business_diagnosis);
       
-      // Show the generated audience in a modal or toast
+      // Show the generated audience in a toast
       toast.success('קהלי יעד זוהו בהצלחה');
       
-      // Parse the generated audience into separate audience objects
-      // This is a simplified parsing logic - you might need to adjust based on the actual format
-      const audienceSegments = generatedAudience.split(/\n\s*\n/).filter(segment => segment.trim());
+      // More robust parsing logic for the generated audience
+      // Look for numbered sections (1., 2., etc.) or clear section headers
+      const audienceRegex = /(?:^|\n)(?:\d+\.\s*|קהל יעד \d+:?\s*|קהל \d+:?\s*)([^\n]+)(?:\n|$)([\s\S]*?)(?=(?:\n\s*\d+\.\s*|קהל יעד \d+:?\s*|קהל \d+:?\s*|$))/g;
       
-      for (const segment of audienceSegments) {
-        const nameMatch = segment.match(/^(.+?)(?:\n|:)/);
-        if (nameMatch && nameMatch[1]) {
-          const name = nameMatch[1].replace(/^\d+\.\s*/, '').trim();
-          const description = segment.includes('תיאור') ? 
-            segment.match(/תיאור[:\s]+([\s\S]*?)(?:\n|$)/)?.[1]?.trim() : 
-            segment.split('\n').slice(1, 2).join('').trim();
-          const characteristics = segment.includes('מאפיינים') ? 
-            segment.match(/מאפיינים[:\s]+([\s\S]*?)(?:\n\s*\n|$)/)?.[1]?.trim() : 
-            segment.split('\n').slice(2).join('\n').trim();
-          
-          if (name) {
-            // Add the new audience
-            const formData: TargetAudienceFormData = {
+      let match;
+      let audienceCount = 0;
+      const maxAudiences = 5; // Limit to 5 audiences
+      const createdAudiences = [];
+      
+      // Use regex to find all audience sections
+      while ((match = audienceRegex.exec(generatedAudience)) !== null && audienceCount < maxAudiences) {
+        const name = match[1].trim();
+        const content = match[2].trim();
+        
+        // Extract description and characteristics from content
+        let description = '';
+        let characteristics = '';
+        
+        // Try to find description section
+        const descMatch = content.match(/(?:תיאור[:\s]+)([\s\S]*?)(?=(?:\n\s*מאפיינים|$))/i);
+        if (descMatch && descMatch[1]) {
+          description = descMatch[1].trim();
+        } else {
+          // If no explicit description section, take the first paragraph
+          const firstPara = content.split(/\n\s*\n/)[0];
+          if (firstPara) description = firstPara.trim();
+        }
+        
+        // Try to find characteristics section
+        const charMatch = content.match(/(?:מאפיינים[:\s]+)([\s\S]*)/i);
+        if (charMatch && charMatch[1]) {
+          characteristics = charMatch[1].trim();
+        } else {
+          // If no explicit characteristics section, take everything after the first paragraph
+          const parts = content.split(/\n\s*\n/);
+          if (parts.length > 1) {
+            characteristics = parts.slice(1).join('\n\n').trim();
+          }
+        }
+        
+        // Only create audience if we have a valid name
+        if (name) {
+          try {
+            const formData = {
               name,
               description: description || '',
               characteristics: characteristics || ''
             };
             
+            const newAudience = await addTargetAudience(formData);
+            createdAudiences.push(newAudience);
+            audienceCount++;
+          } catch (error) {
+            console.error('Error adding generated target audience:', error);
+          }
+        }
+      }
+      
+      // If no audiences were created with the regex approach, fall back to a simpler approach
+      if (audienceCount === 0) {
+        // Simple fallback: split by double newlines and look for numbered items
+        const segments = generatedAudience.split(/\n\s*\n/).filter(s => s.trim());
+        
+        for (const segment of segments) {
+          if (audienceCount >= maxAudiences) break;
+          
+          // Look for lines that start with numbers or appear to be headers
+          const nameMatch = segment.match(/^(?:\d+\.\s*|קהל יעד:?\s*|קהל:?\s*)([^\n]+)/);
+          
+          if (nameMatch && nameMatch[1]) {
+            const name = nameMatch[1].trim();
+            const restOfContent = segment.replace(nameMatch[0], '').trim();
+            
             try {
-              const newTargetAudience = await addTargetAudience(formData);
-              setTargetAudiences((prev) => [newTargetAudience, ...prev]);
+              const formData = {
+                name,
+                description: restOfContent.split('\n')[0] || '',
+                characteristics: restOfContent.split('\n').slice(1).join('\n') || ''
+              };
+              
+              const newAudience = await addTargetAudience(formData);
+              createdAudiences.push(newAudience);
+              audienceCount++;
             } catch (error) {
               console.error('Error adding generated target audience:', error);
             }
           }
         }
+      }
+      
+      // Update the state with created audiences
+      setTargetAudiences(createdAudiences);
+      
+      // If no audiences were created at all, show an error
+      if (createdAudiences.length === 0) {
+        toast.error('לא הצלחנו לזהות קהלי יעד. נסה שוב או צור קהלי יעד באופן ידני.');
       }
     } catch (error) {
       console.error('Error generating target audiences:', error);
