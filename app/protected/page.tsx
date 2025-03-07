@@ -1,10 +1,14 @@
 import { createClient } from "@/utils/supabase/server";
-import { InfoIcon, Home, Users, Settings, FileText, ClipboardList, Target , MessageSquareLock, MessageSquare, LogOut} from "lucide-react";
+import { InfoIcon, Home, Users, Settings, FileText, ClipboardList, Target, MessageSquareLock, MessageSquare, LogOut, Package, User, ChevronRight, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import LogoutButton from '@/components/logout-button';
 import { Button } from "@/components/ui/button";
 import '@/styles/protected/page.scss';
+import { getProducts } from "./products/actions";
+import { getTargetAudiences } from "./target-audience/actions";
+import { formatDistanceToNow } from 'date-fns';
+import { he } from 'date-fns/locale';
 
 interface NavItem {
   label: string | React.ReactNode;
@@ -23,7 +27,7 @@ export default async function DashboardPage() {
   // Fetch the user's profile with business diagnosis
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('business_diagnosis, business_name')
+    .select('business_diagnosis, business_name, created_at')
     .eq('id', user.id)
     .single();
 
@@ -42,8 +46,15 @@ export default async function DashboardPage() {
     return redirect('/protected/questionnaire');
   }
 
+  // Fetch products and target audiences
+  const products = await getProducts();
+  const targetAudiences = await getTargetAudiences();
+
   const businessDiagnosis = profile.business_diagnosis || "No business diagnosis found.";
-  const businessName = profile.business_name || "Your Business";
+  const businessName = profile.business_name || "העסק שלך";
+  const memberSince = profile.created_at ? 
+    formatDistanceToNow(new Date(profile.created_at), { addSuffix: true, locale: he }) : 
+    "לא ידוע";
 
   const navItems: NavItem[] =  [
     { label: "לוח בקרה", icon: <Home size={20} />, href: "/protected" },
@@ -72,67 +83,190 @@ export default async function DashboardPage() {
     <div className="flex-1 w-full flex" dir="rtl">
       {/* Main Content */}
       <main className="main p-8">
-        <div  id="main-protected-inner-wrapper" className="max-w-5xl mx-auto space-y-8">
+        <div id="main-protected-inner-wrapper" className="max-w-5xl mx-auto space-y-8">
           {/* Welcome Banner */}
-          <div className="welcome-banner bg-accent text-sm p-4 rounded-lg text-foreground flex gap-3 items-center">
-            <InfoIcon size="20" strokeWidth={2} />
-            <div>
-              <h3 className="font-semibold mb-1">ברוכים הבאים {businessName}!</h3>
-              <p>כאן תוכלו לנהל את החשבון והפעילויות שלכם.</p>
+          <div className="welcome-banner bg-gradient-to-l from-primary/10 to-primary/5 p-6 rounded-lg border border-primary/20 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/20 rounded-full text-primary">
+                <Sparkles size={24} />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold mb-2">ברוכים הבאים, {businessName}!</h1>
+                <p className="text-muted-foreground">
+                  כאן תוכלו לנהל את העסק שלכם, לצפות באבחון העסקי, לנהל מוצרים וקהלי יעד, ולקבל תובנות שיווקיות חכמות.
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Business Diagnosis Section */}
-          <section className="bg-card rounded-lg p-6 border mb-6">
+          <section className="bg-card rounded-lg p-6 border shadow-sm">
             <div className="flex items-center justify-between gap-3 mb-6">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-full text-primary">
                   <ClipboardList className="h-6 w-6" />
-                  <h2 className="font-bold text-2xl">אבחון עסקי</h2>
                 </div>
-                <Button
-                  asChild
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  <Link href="/protected/diagnosis">קבל אבחון AI</Link>
-                </Button>
+                <h2 className="font-bold text-xl">אבחון עסקי</h2>
               </div>
-            <p className="text-sm text-muted-foreground">{businessDiagnosis}</p>
-          </section>
-
-
-          {/* User Profile Section */}
-          <section className="bg-card rounded-lg p-6 border">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="font-bold text-2xl">Profile Overview</h2>
               <Button
                 asChild
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                variant="outline"
+                size="sm"
               >
-                <Link href="/protected/profile">View Full Profile</Link>
+                <Link href="/protected/diagnosis-summary">צפה בסיכום מלא</Link>
+              </Button>
+            </div>
+            <div className="bg-muted/50 p-4 rounded-md text-sm text-muted-foreground whitespace-pre-line max-h-40 overflow-y-auto">
+              {businessDiagnosis}
+            </div>
+          </section>
+
+          {/* User Profile Section */}
+          <section className="bg-card rounded-lg p-6 border shadow-sm">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-full text-primary">
+                  <User className="h-6 w-6" />
+                </div>
+                <h2 className="font-bold text-xl">סקירת פרופיל</h2>
+              </div>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+              >
+                <Link href="/protected/profile">צפה בפרופיל מלא</Link>
               </Button>
             </div>
             <div className="grid gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
                   {user.email?.[0].toUpperCase()}
                 </div>
                 <div>
                   <h3 className="font-semibold">{user.email}</h3>
-                  <p className="text-sm text-muted-foreground">User ID: {user.id}</p>
+                  <p className="text-sm text-muted-foreground">משתמש מאז: {memberSince}</p>
                 </div>
               </div>
             </div>
           </section>
 
+          {/* Products Quick View */}
+          <section className="bg-card rounded-lg p-6 border shadow-sm">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-full text-primary">
+                  <Package className="h-6 w-6" />
+                </div>
+                <h2 className="font-bold text-xl">מוצרים</h2>
+              </div>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+              >
+                <Link href="/protected/products">צפה בכל המוצרים</Link>
+              </Button>
+            </div>
+            
+            {products.length > 0 ? (
+              <div className="space-y-3">
+                {products.slice(0, 3).map((product) => (
+                  <Link 
+                    key={product.id} 
+                    href={`/protected/products?edit=${product.id}`}
+                    className="flex items-center justify-between p-3 rounded-md border hover:bg-muted/50 transition-colors"
+                  >
+                    <div>
+                      <h3 className="font-medium">{product.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS' }).format(product.price)}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  </Link>
+                ))}
+                {products.length > 3 && (
+                  <p className="text-sm text-center text-muted-foreground pt-2">
+                    מציג 3 מתוך {products.length} מוצרים
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6 bg-muted/30 rounded-md">
+                <p className="text-muted-foreground mb-3">אין מוצרים עדיין</p>
+                <Button asChild size="sm">
+                  <Link href="/protected/products">הוסף מוצר ראשון</Link>
+                </Button>
+              </div>
+            )}
+          </section>
+
+          {/* Target Audiences Quick View */}
+          <section className="bg-card rounded-lg p-6 border shadow-sm">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-full text-primary">
+                  <Users className="h-6 w-6" />
+                </div>
+                <h2 className="font-bold text-xl">קהלי יעד</h2>
+              </div>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+              >
+                <Link href="/protected/target-audience">צפה בכל קהלי היעד</Link>
+              </Button>
+            </div>
+            
+            {targetAudiences.length > 0 ? (
+              <div className="space-y-3">
+                {targetAudiences.slice(0, 3).map((audience) => (
+                  <Link 
+                    key={audience.id} 
+                    href={`/protected/target-audience?edit=${audience.id}`}
+                    className="flex items-center justify-between p-3 rounded-md border hover:bg-muted/50 transition-colors"
+                  >
+                    <div>
+                      <h3 className="font-medium">{audience.name}</h3>
+                      {audience.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-1">{audience.description}</p>
+                      )}
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  </Link>
+                ))}
+                {targetAudiences.length > 3 && (
+                  <p className="text-sm text-center text-muted-foreground pt-2">
+                    מציג 3 מתוך {targetAudiences.length} קהלי יעד
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6 bg-muted/30 rounded-md">
+                <p className="text-muted-foreground mb-3">אין קהלי יעד עדיין</p>
+                <Button asChild size="sm">
+                  <Link href="/protected/target-audience">הוסף קהל יעד ראשון</Link>
+                </Button>
+              </div>
+            )}
+          </section>
+
           {/* Quick Actions Section */}
           <section id="quick-actions">
-            <h2 className="font-bold text-2xl mb-4">פעולות מהירות</h2>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-primary/10 rounded-full text-primary">
+                <Target className="h-6 w-6" />
+              </div>
+              <h2 className="font-bold text-xl">פעולות מהירות</h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {quickActions.map((action) => (
                 <Link
                   key={action.id}
                   href={action.href}
-                  className="group p-6 rounded-lg border hover:border-primary transition-colors"
+                  className="group p-6 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors shadow-sm"
                 >
                   <div className="flex items-center gap-4">
                     <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
