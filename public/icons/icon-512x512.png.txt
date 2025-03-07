@@ -1,0 +1,17 @@
+This is a placeholder file.
+
+You need to replace this with actual icon files in various sizes:
+- icon-72x72.png
+- icon-96x96.png
+- icon-128x128.png
+- icon-144x144.png
+- icon-152x152.png
+- icon-192x192.png
+- icon-384x384.png
+- icon-512x512.png
+- apple-icon-180x180.png
+
+You can generate these icons from your logo using a tool like:
+- https://www.pwabuilder.com/imageGenerator
+- https://app-manifest.firebaseapp.com/
+- https://realfavicongenerator.net/ 
