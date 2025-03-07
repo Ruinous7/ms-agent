@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import '@/styles/protected/page.scss';
 import { getProducts } from "./products/actions";
 import { getTargetAudiences } from "./target-audience/actions";
+import { getMarketingMessages } from "./marketing-messages/actions";
 import { formatDistanceToNow } from 'date-fns';
 import { he } from 'date-fns/locale';
 
@@ -49,6 +50,7 @@ export default async function DashboardPage() {
   // Fetch products and target audiences
   const products = await getProducts();
   const targetAudiences = await getTargetAudiences();
+  const marketingMessages = await getMarketingMessages();
 
   const businessDiagnosis = profile.business_diagnosis || "No business diagnosis found.";
   const businessName = profile.business_name || "העסק שלך";
@@ -248,6 +250,58 @@ export default async function DashboardPage() {
                 <p className="text-muted-foreground mb-3">אין קהלי יעד עדיין</p>
                 <Button asChild size="sm">
                   <Link href="/protected/target-audience">הוסף קהל יעד ראשון</Link>
+                </Button>
+              </div>
+            )}
+          </section>
+
+          {/* Marketing Messages Quick View */}
+          <section className="bg-card rounded-lg p-6 border shadow-sm">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-full text-primary">
+                  <MessageSquare className="h-6 w-6" />
+                </div>
+                <h2 className="font-bold text-xl">מסרים שיווקיים</h2>
+              </div>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+              >
+                <Link href="/protected/marketing-messages">צפה בכל המסרים</Link>
+              </Button>
+            </div>
+            
+            {marketingMessages.length > 0 ? (
+              <div className="space-y-3">
+                {marketingMessages.slice(0, 3).map((message) => (
+                  <Link 
+                    key={message.id} 
+                    href={`/protected/marketing-messages?edit=${message.id}`}
+                    className="flex items-center justify-between p-3 rounded-md border hover:bg-muted/50 transition-colors"
+                  >
+                    <div>
+                      <h3 className="font-medium">{message.title}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-1">
+                        {message.content.substring(0, 100)}
+                        {message.content.length > 100 ? '...' : ''}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  </Link>
+                ))}
+                {marketingMessages.length > 3 && (
+                  <p className="text-sm text-center text-muted-foreground pt-2">
+                    מציג 3 מתוך {marketingMessages.length} מסרים שיווקיים
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6 bg-muted/30 rounded-md">
+                <p className="text-muted-foreground mb-3">אין מסרים שיווקיים עדיין</p>
+                <Button asChild size="sm">
+                  <Link href="/protected/marketing-messages">הוסף מסר שיווקי ראשון</Link>
                 </Button>
               </div>
             )}

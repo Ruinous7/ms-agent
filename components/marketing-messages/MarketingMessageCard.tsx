@@ -134,17 +134,19 @@ export default function MarketingMessageCard({
         <DialogContent className="max-w-3xl" dir="rtl">
           <DialogHeader>
             <DialogTitle>{message.title}</DialogTitle>
-            <DialogDescription>
-              {message.target_audience_id && (
-                <Badge variant="outline" className="mr-2">
-                  קהל: {getTargetAudienceName(message.target_audience_id)}
-                </Badge>
-              )}
-              {message.product_id && (
-                <Badge variant="outline">
-                  מוצר: {getProductName(message.product_id)}
-                </Badge>
-              )}
+            <DialogDescription asChild>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {message.target_audience_id && (
+                  <Badge variant="outline">
+                    קהל: {getTargetAudienceName(message.target_audience_id)}
+                  </Badge>
+                )}
+                {message.product_id && (
+                  <Badge variant="outline">
+                    מוצר: {getProductName(message.product_id)}
+                  </Badge>
+                )}
+              </div>
             </DialogDescription>
           </DialogHeader>
           
