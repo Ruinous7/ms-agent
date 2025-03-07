@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { FiHome, FiUser, FiFileText, FiSettings, FiLogOut, FiClipboard, FiBarChart2, FiUsers } from 'react-icons/fi';
 import { createClient } from '@/utils/supabase/client';
 import styles from './sidebar.module.scss';
+import { Package } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -19,29 +20,24 @@ export default function Sidebar() {
       label: 'ראשי'
     },
     {
+      href: '/protected/profile',
+      icon: <FiUser />,
+      label: 'פרופיל'
+    },
+    {
       href: '/protected/questionnaire',
       icon: <FiClipboard />,
       label: 'שאלון אבחון'
     },
     {
-      href: '/protected/diagnosis-summary',
-      icon: <FiBarChart2 />,
-      label: 'סיכום אבחון'
-    },
-    {
       href: '/protected/products',
-      icon: <FiFileText />,
+      icon:<Package />,
       label: 'מוצרים'
     },
     {
       href: '/protected/target-audience',
       icon: <FiUsers />,
       label: 'קהלי יעד'
-    },
-    {
-      href: '/protected/profile',
-      icon: <FiUser />,
-      label: 'פרופיל'
     },
     {
       href: '/protected/actions',
