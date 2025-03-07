@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
     // Generate posts using OpenAI with stronger emphasis on keywords
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
