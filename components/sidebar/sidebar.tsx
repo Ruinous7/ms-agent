@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { FiHome, FiUser, FiFileText, FiSettings, FiLogOut, FiClipboard, FiBarChart2, FiUsers } from 'react-icons/fi';
 import { createClient } from '@/utils/supabase/client';
 import styles from './sidebar.module.scss';
-import { Package } from 'lucide-react';
+import { Package, MessageSquare } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -31,13 +31,18 @@ export default function Sidebar() {
     },
     {
       href: '/protected/products',
-      icon:<Package />,
+      icon: <Package />,
       label: 'מוצרים'
     },
     {
       href: '/protected/target-audience',
       icon: <FiUsers />,
       label: 'קהלי יעד'
+    },
+    {
+      href: '/protected/marketing-messages',
+      icon: <MessageSquare />,
+      label: 'מסרים שיווקיים'
     },
     {
       href: '/protected/actions',
