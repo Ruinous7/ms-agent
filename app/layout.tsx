@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import Link from "next/link";
 import "@/styles/globals.scss";
 import { Toaster } from 'sonner';
+import { NavigationProgress } from "@/components/ui/nprogress";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -35,6 +36,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
+            <NavigationProgress />
             <main>
                 <nav className="main-nav-bar w-full flex border-b border-b-foreground/10 h-16 sticky top-0 bg-background z-10">
                   <div className="w-full flex justify-between items-center p-3 px-7 text-sm">
