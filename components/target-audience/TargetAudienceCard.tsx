@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { TargetAudience } from '@/app/protected/actions/target-audience/actions';
+import { TargetAudience } from '@/app/protected/target-audience/actions';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PencilIcon, TrashIcon, UsersIcon } from 'lucide-react';

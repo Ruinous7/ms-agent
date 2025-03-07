@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
-import { FiHome, FiUser, FiFileText, FiSettings, FiLogOut, FiClipboard, FiBarChart2 } from 'react-icons/fi';
+import { FiHome, FiUser, FiFileText, FiSettings, FiLogOut, FiClipboard, FiBarChart2, FiUsers } from 'react-icons/fi';
 import { createClient } from '@/utils/supabase/client';
 import styles from './sidebar.module.scss';
 
@@ -32,6 +32,11 @@ export default function Sidebar() {
       href: '/protected/products',
       icon: <FiFileText />,
       label: 'מוצרים'
+    },
+    {
+      href: '/protected/target-audience',
+      icon: <FiUsers />,
+      label: 'קהלי יעד'
     },
     {
       href: '/protected/profile',

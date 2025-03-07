@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { ArrowLeft, PlusIcon } from 'lucide-react';
-import Link from 'next/link';
+import { PlusIcon } from 'lucide-react';
 import { TargetAudience, TargetAudienceFormData, addTargetAudience, deleteTargetAudience, getTargetAudiences, updateTargetAudience, generateTargetAudience } from './actions';
 import TargetAudienceCard from '@/components/target-audience/TargetAudienceCard';
 import TargetAudienceModal from '@/components/target-audience/TargetAudienceModal';
@@ -152,13 +151,15 @@ export default function TargetAudiencePage() {
 
   return (
     <div className="container mx-auto py-8 px-4" dir="rtl">
-      <div className="flex items-center mb-6">
-        <Link href="/protected/actions" className="mr-4">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
+      <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold">קהלי יעד</h1>
+        <Button 
+          onClick={handleAddTargetAudience}
+          className="flex items-center gap-1"
+        >
+          <PlusIcon className="h-4 w-4 ml-1 mr-0" />
+          הוסף קהל יעד
+        </Button>
       </div>
 
       <div className="bg-card dark:bg-card rounded-lg shadow-md p-6 mb-8">
@@ -168,15 +169,7 @@ export default function TargetAudiencePage() {
           זיהוי קהלי היעד הנכונים יעזור לך למקד את מאמצי השיווק שלך ולהגיע ללקוחות הרלוונטיים ביותר לעסק שלך.
         </p>
 
-        <div className="flex items-center justify-between mb-8">
-          <Button 
-            onClick={handleAddTargetAudience}
-            className="flex items-center gap-1"
-          >
-            <PlusIcon className="h-4 w-4 ml-1 mr-0" />
-            הוסף קהל יעד
-          </Button>
-          
+        <div className="flex justify-end mb-8">
           <Button 
             onClick={handleGenerateTargetAudiences}
             variant="secondary"
@@ -198,11 +191,9 @@ export default function TargetAudiencePage() {
             <p className="text-amber-800 dark:text-amber-400">
               לא נמצא אבחון עסקי. יש להשלים את האבחון העסקי לפני זיהוי קהלי יעד.
             </p>
-            <Link href="/protected/questionnaire">
-              <Button variant="outline" className="mt-2">
-                השלם אבחון עסקי
-              </Button>
-            </Link>
+            <Button variant="outline" className="mt-2" onClick={() => window.location.href = '/protected/questionnaire'}>
+              השלם אבחון עסקי
+            </Button>
           </div>
         )}
 

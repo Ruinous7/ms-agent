@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Megaphone, Users, Target, FileText, BarChart3 } from 'lucide-react';
+import { Megaphone, Target, FileText, BarChart3 } from 'lucide-react';
 
 export default function ActionsPage() {
   const actions = [
@@ -9,13 +9,6 @@ export default function ActionsPage() {
       description: 'יצירת מסרים שיווקיים מותאמים אישית לעסק שלך',
       icon: <Megaphone className="h-6 w-6" />,
       href: '/protected/actions/marketing-messages',
-    },
-    {
-      id: 'target-audience',
-      title: 'קהלי יעד',
-      description: 'זיהוי קהלי היעד המדויקים לעסק שלך',
-      icon: <Users className="h-6 w-6" />,
-      href: '/protected/actions/target-audience',
     },
     {
       id: 'business-goals',

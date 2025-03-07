@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { TargetAudience, TargetAudienceFormData } from '@/app/protected/actions/target-audience/actions';
+import { TargetAudience, TargetAudienceFormData } from '@/app/protected/target-audience/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

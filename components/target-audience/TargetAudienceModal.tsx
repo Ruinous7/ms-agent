@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { TargetAudience, TargetAudienceFormData } from '@/app/protected/actions/target-audience/actions';
+import { TargetAudience, TargetAudienceFormData } from '@/app/protected/target-audience/actions';
 import TargetAudienceForm from '@/components/target-audience/TargetAudienceForm';
 
 interface TargetAudienceModalProps {
