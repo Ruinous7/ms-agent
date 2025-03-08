@@ -37,14 +37,34 @@ export const updateSession = async (request: NextRequest) => {
 
     // This will refresh session if expired - required for Server Components
     // https://supabase.com/docs/guides/auth/server-side/nextjs
-    const user = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     // protected routes
-    if (request.nextUrl.pathname.startsWith("/protected") && user.error) {
+    if (request.nextUrl.pathname.startsWith("/protected") && userError) {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
 
-    if (request.nextUrl.pathname === "/" && !user.error) {
+    // Check if user has completed the questionnaire for protected routes
+    // Skip this check for the questionnaire page itself
+    if (
+      request.nextUrl.pathname.startsWith("/protected") && 
+      !request.nextUrl.pathname.startsWith("/protected/questionnaire") && 
+      user
+    ) {
+      // Fetch the user's profile with business diagnosis
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('business_diagnosis')
+        .eq('id', user.id)
+        .single();
+
+      // If profile doesn't exist or no business diagnosis, redirect to questionnaire
+      if (profileError || !profile?.business_diagnosis) {
+        return NextResponse.redirect(new URL("/protected/questionnaire", request.url));
+      }
+    }
+
+    if (request.nextUrl.pathname === "/" && !userError) {
       return NextResponse.redirect(new URL("/protected", request.url));
     }
 

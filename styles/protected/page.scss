@@ -7,13 +7,11 @@
 
 .main {
     width: 100%;
-    padding-inline-start: 16rem;
-    padding-block-start: 1rem;
 }
 
 @media (max-width: 768px) {
     .main {
-        padding-inline-start: 0;
+        padding: 0;
 
         #main-protected-inner-wrapper{
             width: 100%;
