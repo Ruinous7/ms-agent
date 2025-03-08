@@ -1,10 +1,10 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { MarketingMessage, MarketingMessageFormData } from '@/app/protected/marketing-messages/actions';
 import { Product } from '@/app/protected/products/actions';
 import { TargetAudience } from '@/app/protected/target-audience/actions';
 import MarketingMessageForm from '@/components/marketing-messages/MarketingMessageForm';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface MarketingMessageModalProps {
   isOpen: boolean;
@@ -25,6 +25,8 @@ export default function MarketingMessageModal({
 }: MarketingMessageModalProps) {
   const isEditing = !!message;
   const [isMobile, setIsMobile] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const descriptionId = useRef(`marketing-modal-description-${isEditing ? 'edit' : 'add'}`).current;
   
   useEffect(() => {
     const checkIsMobile = () => {
@@ -39,8 +41,19 @@ export default function MarketingMessageModal({
     };
   }, []);
   
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setIsClosing(true);
+      // Wait for animation to complete before fully closing
+      setTimeout(() => {
+        onClose();
+        setIsClosing(false);
+      }, 300); // Match animation duration
+    }
+  };
+  
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent 
         className={cn(
           "max-w-2xl",
@@ -49,10 +62,13 @@ export default function MarketingMessageModal({
             ""
         )} 
         dir="rtl"
+        aria-describedby={descriptionId}
         style={{
           ...(isMobile ? {
-            animation: isOpen ? 'slideUp 0.3s ease-out forwards' : 'slideDown 0.3s ease-in forwards',
-            transform: 'translateY(100%)'
+            animation: isClosing 
+              ? 'slideDown 0.3s ease-in forwards' 
+              : 'slideUp 0.3s ease-out forwards',
+            transform: isClosing ? 'translateY(0)' : 'translateY(100%)'
           } : {})
         }}
       >
@@ -71,6 +87,9 @@ export default function MarketingMessageModal({
           <DialogTitle>
             {isEditing ? 'עריכת מסר שיווקי' : 'הוספת מסר שיווקי חדש'}
           </DialogTitle>
+          <DialogDescription id={descriptionId} className="sr-only">
+            {isEditing ? 'טופס עריכת מסר שיווקי' : 'טופס הוספת מסר שיווקי חדש'}
+          </DialogDescription>
         </DialogHeader>
         
         <MarketingMessageForm 

@@ -2,9 +2,9 @@
 
 import { Product, ProductFormData } from '@/app/protected/products/actions';
 import ProductForm from '@/components/products/ProductForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -21,6 +21,8 @@ export default function ProductModal({
 }: ProductModalProps) {
   const isEditing = !!product;
   const [isMobile, setIsMobile] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const descriptionId = useRef(`product-modal-description-${isEditing ? 'edit' : 'add'}`).current;
   
   useEffect(() => {
     const checkIsMobile = () => {
@@ -35,8 +37,19 @@ export default function ProductModal({
     };
   }, []);
   
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setIsClosing(true);
+      // Wait for animation to complete before fully closing
+      setTimeout(() => {
+        onClose();
+        setIsClosing(false);
+      }, 300); // Match animation duration
+    }
+  };
+  
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent 
         className={cn(
           "max-w-md",
@@ -45,10 +58,13 @@ export default function ProductModal({
             ""
         )} 
         dir="rtl"
+        aria-describedby={descriptionId}
         style={{
           ...(isMobile ? {
-            animation: isOpen ? 'slideUp 0.3s ease-out forwards' : 'slideDown 0.3s ease-in forwards',
-            transform: 'translateY(100%)'
+            animation: isClosing 
+              ? 'slideDown 0.3s ease-in forwards' 
+              : 'slideUp 0.3s ease-out forwards',
+            transform: isClosing ? 'translateY(0)' : 'translateY(100%)'
           } : {})
         }}
       >
@@ -67,6 +83,9 @@ export default function ProductModal({
           <DialogTitle>
             {isEditing ? 'ערוך מוצר' : 'הוסף מוצר חדש'}
           </DialogTitle>
+          <DialogDescription id={descriptionId} className="sr-only">
+            {isEditing ? 'טופס עריכת מוצר' : 'טופס הוספת מוצר חדש'}
+          </DialogDescription>
         </DialogHeader>
         
         <ProductForm 

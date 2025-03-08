@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Edit, Trash2, Copy } from 'lucide-react';
@@ -34,6 +34,8 @@ export default function MarketingMessageCard({
   const [showFullContent, setShowFullContent] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const descriptionId = useRef(`message-description-${message.id}`).current;
   
   useEffect(() => {
     const checkIsMobile = () => {
@@ -47,6 +49,19 @@ export default function MarketingMessageCard({
       window.removeEventListener('resize', checkIsMobile);
     };
   }, []);
+  
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setIsClosing(true);
+      // Wait for animation to complete before fully closing
+      setTimeout(() => {
+        setIsPreviewOpen(false);
+        setIsClosing(false);
+      }, 300); // Match animation duration
+    } else {
+      setIsPreviewOpen(true);
+    }
+  };
   
   const getProductName = (productId: string | null) => {
     if (!productId) return null;
@@ -127,7 +142,7 @@ export default function MarketingMessageCard({
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => setIsPreviewOpen(true)}
+            onClick={() => handleOpenChange(true)}
           >
             תצוגה מקדימה
           </Button>
@@ -145,7 +160,7 @@ export default function MarketingMessageCard({
       </Card>
       
       {/* Preview Dialog */}
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+      <Dialog open={isPreviewOpen} onOpenChange={handleOpenChange}>
         <DialogContent 
           className={cn(
             "max-w-3xl",
@@ -154,10 +169,13 @@ export default function MarketingMessageCard({
               ""
           )} 
           dir="rtl"
+          aria-describedby={descriptionId}
           style={{
             ...(isMobile ? {
-              animation: isPreviewOpen ? 'slideUp 0.3s ease-out forwards' : 'slideDown 0.3s ease-in forwards',
-              transform: 'translateY(100%)'
+              animation: isClosing 
+                ? 'slideDown 0.3s ease-in forwards' 
+                : 'slideUp 0.3s ease-out forwards',
+              transform: isClosing ? 'translateY(0)' : 'translateY(100%)'
             } : {})
           }}
         >
@@ -174,7 +192,7 @@ export default function MarketingMessageCard({
           `}</style>
           <DialogHeader>
             <DialogTitle>{message.title}</DialogTitle>
-            <DialogDescription asChild>
+            <DialogDescription id={descriptionId} asChild>
               <div className="flex flex-wrap gap-2 mt-1">
                 {message.target_audience_id && (
                   <Badge variant="outline">
@@ -195,7 +213,7 @@ export default function MarketingMessageCard({
           </div>
           
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>
+            <Button variant="outline" onClick={() => handleOpenChange(false)}>
               סגור
             </Button>
             <Button onClick={handleCopyToClipboard}>
