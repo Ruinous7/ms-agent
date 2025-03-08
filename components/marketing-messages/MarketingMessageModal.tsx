@@ -58,7 +58,7 @@ export default function MarketingMessageModal({
         className={cn(
           "max-w-2xl",
           isMobile ? 
-            "!p-4 !rounded-b-none !rounded-t-xl !max-h-[80vh] !bottom-0 !top-auto !translate-y-0 !max-w-full !w-full !overflow-auto" : 
+            "!p-4 !rounded-b-none !rounded-t-xl !max-h-[80vh] !bottom-0 !top-auto !translate-y-0 !max-w-full !w-full !overflow-auto !left-0 !right-0 !translate-x-0" : 
             ""
         )} 
         dir="rtl"
@@ -68,7 +68,8 @@ export default function MarketingMessageModal({
             animation: isClosing 
               ? 'slideDown 0.3s ease-in forwards' 
               : 'slideUp 0.3s ease-out forwards',
-            transform: isClosing ? 'translateY(0)' : 'translateY(100%)'
+            transform: isClosing ? 'translateY(0)' : 'translateY(100%)',
+            margin: '0 auto'
           } : {})
         }}
       >
