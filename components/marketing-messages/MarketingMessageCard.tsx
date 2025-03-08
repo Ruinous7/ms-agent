@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Edit, Trash2, Copy } from 'lucide-react';
@@ -14,6 +14,7 @@ import { TargetAudience } from '@/app/protected/target-audience/actions';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 interface MarketingMessageCardProps {
   message: MarketingMessage;
@@ -32,6 +33,20 @@ export default function MarketingMessageCard({
 }: MarketingMessageCardProps) {
   const [showFullContent, setShowFullContent] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIsMobile);
+    };
+  }, []);
   
   const getProductName = (productId: string | null) => {
     if (!productId) return null;
@@ -131,7 +146,32 @@ export default function MarketingMessageCard({
       
       {/* Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-3xl" dir="rtl">
+        <DialogContent 
+          className={cn(
+            "max-w-3xl",
+            isMobile ? 
+              "!p-4 !rounded-b-none !rounded-t-xl !max-h-[80vh] !bottom-0 !top-auto !translate-y-0 !max-w-full !w-full !overflow-auto" : 
+              ""
+          )} 
+          dir="rtl"
+          style={{
+            ...(isMobile ? {
+              animation: isPreviewOpen ? 'slideUp 0.3s ease-out forwards' : 'slideDown 0.3s ease-in forwards',
+              transform: 'translateY(100%)'
+            } : {})
+          }}
+        >
+          <style jsx global>{`
+            @keyframes slideUp {
+              from { transform: translateY(100%); }
+              to { transform: translateY(0); }
+            }
+            
+            @keyframes slideDown {
+              from { transform: translateY(0); }
+              to { transform: translateY(100%); }
+            }
+          `}</style>
           <DialogHeader>
             <DialogTitle>{message.title}</DialogTitle>
             <DialogDescription asChild>
